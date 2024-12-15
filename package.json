@@ -29,7 +29,7 @@
     "@aws-sdk/client-codepipeline": "^3.699.0"
   },
   "devDependencies": {
-    "@types/node": "^20.17.9",
+    "@types/node": "^20.17.10",
     "@typescript-eslint/eslint-plugin": "^7.17.0",
     "@typescript-eslint/parser": "^7.18.0",
     "@vercel/ncc": "^0.38.3",
