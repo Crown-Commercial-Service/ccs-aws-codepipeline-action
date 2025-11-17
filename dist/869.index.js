@@ -64,7 +64,7 @@ const isCredentialSourceProfile = (arg, { profile, logger }) => {
     }
     return withProviderProfile;
 };
-const resolveAssumeRoleCredentials = async (profileName, profiles, options, visitedProfiles = {}) => {
+const resolveAssumeRoleCredentials = async (profileName, profiles, options, visitedProfiles = {}, resolveProfileData) => {
     options.logger?.debug("@aws-sdk/credential-provider-ini - resolveAssumeRoleCredentials (STS)");
     const profileData = profiles[profileName];
     const { source_profile, region } = profileData;
@@ -169,7 +169,7 @@ const isWebIdentityProfile = (arg) => Boolean(arg) &&
     typeof arg.web_identity_token_file === "string" &&
     typeof arg.role_arn === "string" &&
     ["undefined", "string"].indexOf(typeof arg.role_session_name) > -1;
-const resolveWebIdentityCredentials = async (profile, options) => Promise.all(/* import() */[__webpack_require__.e(136), __webpack_require__.e(956)]).then(__webpack_require__.t.bind(__webpack_require__, 9956, 23)).then(({ fromTokenFile }) => fromTokenFile({
+const resolveWebIdentityCredentials = async (profile, options) => __webpack_require__.e(/* import() */ 956).then(__webpack_require__.t.bind(__webpack_require__, 9956, 23)).then(({ fromTokenFile }) => fromTokenFile({
     webIdentityTokenFile: profile.web_identity_token_file,
     roleArn: profile.role_arn,
     roleSessionName: profile.role_session_name,
@@ -184,7 +184,7 @@ const resolveProfileData = async (profileName, profiles, options, visitedProfile
         return resolveStaticCredentials(data, options);
     }
     if (isAssumeRoleRecursiveCall || isAssumeRoleProfile(data, { profile: profileName, logger: options.logger })) {
-        return resolveAssumeRoleCredentials(profileName, profiles, options, visitedProfiles);
+        return resolveAssumeRoleCredentials(profileName, profiles, options, visitedProfiles, resolveProfileData);
     }
     if (isStaticCredsProfile(data)) {
         return resolveStaticCredentials(data, options);

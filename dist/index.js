@@ -3349,7 +3349,7 @@ util_endpoints_2.customEndpointFunctions.aws = util_endpoints_1.awsEndpointFunct
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ruleSet = void 0;
 const s = "required", t = "fn", u = "argv", v = "ref";
-const a = true, b = "isSet", c = "booleanEquals", d = "error", e = "endpoint", f = "tree", g = "PartitionResult", h = { [s]: false, "type": "String" }, i = { [s]: true, "default": false, "type": "Boolean" }, j = { [v]: "Endpoint" }, k = { [t]: c, [u]: [{ [v]: "UseFIPS" }, true] }, l = { [t]: c, [u]: [{ [v]: "UseDualStack" }, true] }, m = {}, n = { [t]: "getAttr", [u]: [{ [v]: g }, "supportsFIPS"] }, o = { [t]: c, [u]: [true, { [t]: "getAttr", [u]: [{ [v]: g }, "supportsDualStack"] }] }, p = [k], q = [l], r = [{ [v]: "Region" }];
+const a = true, b = "isSet", c = "booleanEquals", d = "error", e = "endpoint", f = "tree", g = "PartitionResult", h = { [s]: false, "type": "string" }, i = { [s]: true, "default": false, "type": "boolean" }, j = { [v]: "Endpoint" }, k = { [t]: c, [u]: [{ [v]: "UseFIPS" }, true] }, l = { [t]: c, [u]: [{ [v]: "UseDualStack" }, true] }, m = {}, n = { [t]: "getAttr", [u]: [{ [v]: g }, "supportsFIPS"] }, o = { [t]: c, [u]: [true, { [t]: "getAttr", [u]: [{ [v]: g }, "supportsDualStack"] }] }, p = [k], q = [l], r = [{ [v]: "Region" }];
 const _data = { version: "1.0", parameters: { Region: h, UseDualStack: i, UseFIPS: i, Endpoint: h }, rules: [{ conditions: [{ [t]: b, [u]: [j] }], rules: [{ conditions: p, error: "Invalid Configuration: FIPS and custom endpoint are not supported", type: d }, { conditions: q, error: "Invalid Configuration: Dualstack and custom endpoint are not supported", type: d }, { endpoint: { url: j, properties: m, headers: m }, type: e }], type: f }, { conditions: [{ [t]: b, [u]: r }], rules: [{ conditions: [{ [t]: "aws.partition", [u]: r, assign: g }], rules: [{ conditions: [k, l], rules: [{ conditions: [{ [t]: c, [u]: [a, n] }, o], rules: [{ endpoint: { url: "https://codepipeline-fips.{Region}.{PartitionResult#dualStackDnsSuffix}", properties: m, headers: m }, type: e }], type: f }, { error: "FIPS and DualStack are enabled, but this partition does not support one or both", type: d }], type: f }, { conditions: p, rules: [{ conditions: [{ [t]: c, [u]: [n, a] }], rules: [{ endpoint: { url: "https://codepipeline-fips.{Region}.{PartitionResult#dnsSuffix}", properties: m, headers: m }, type: e }], type: f }, { error: "FIPS is enabled but this partition does not support FIPS", type: d }], type: f }, { conditions: q, rules: [{ conditions: [o], rules: [{ endpoint: { url: "https://codepipeline.{Region}.{PartitionResult#dualStackDnsSuffix}", properties: m, headers: m }, type: e }], type: f }, { error: "DualStack is enabled but this partition does not support DualStack", type: d }], type: f }, { endpoint: { url: "https://codepipeline.{Region}.{PartitionResult#dnsSuffix}", properties: m, headers: m }, type: e }], type: f }], type: f }, { error: "Invalid Configuration: Missing Region", type: d }] };
 exports.ruleSet = _data;
 
@@ -3368,6 +3368,7 @@ var middlewareRecursionDetection = __nccwpck_require__(1568);
 var middlewareUserAgent = __nccwpck_require__(2959);
 var configResolver = __nccwpck_require__(9316);
 var core = __nccwpck_require__(402);
+var schema = __nccwpck_require__(6890);
 var middlewareContentLength = __nccwpck_require__(7212);
 var middlewareEndpoint = __nccwpck_require__(99);
 var middlewareRetry = __nccwpck_require__(9618);
@@ -3376,9 +3377,6 @@ var httpAuthSchemeProvider = __nccwpck_require__(9459);
 var runtimeConfig = __nccwpck_require__(8618);
 var regionConfigResolver = __nccwpck_require__(6463);
 var protocolHttp = __nccwpck_require__(2356);
-var middlewareSerde = __nccwpck_require__(3255);
-var core$1 = __nccwpck_require__(8704);
-var uuid = __nccwpck_require__(266);
 
 const resolveClientEndpointParameters = (options) => {
     return Object.assign(options, {
@@ -3454,6 +3452,7 @@ class CodePipelineClient extends smithyClient.Client {
         const _config_7 = httpAuthSchemeProvider.resolveHttpAuthSchemeConfig(_config_6);
         const _config_8 = resolveRuntimeExtensions(_config_7, configuration?.extensions || []);
         this.config = _config_8;
+        this.middlewareStack.use(schema.getSchemaSerdePlugin(this.config));
         this.middlewareStack.use(middlewareUserAgent.getUserAgentPlugin(this.config));
         this.middlewareStack.use(middlewareRetry.getRetryPlugin(this.config));
         this.middlewareStack.use(middlewareContentLength.getContentLengthPlugin(this.config));
@@ -3473,12 +3472,12 @@ class CodePipelineClient extends smithyClient.Client {
     }
 }
 
-class CodePipelineServiceException extends smithyClient.ServiceException {
+let CodePipelineServiceException$1 = class CodePipelineServiceException extends smithyClient.ServiceException {
     constructor(options) {
         super(options);
         Object.setPrototypeOf(this, CodePipelineServiceException.prototype);
     }
-}
+};
 
 const JobStatus = {
     Created: "Created",
@@ -3489,7 +3488,7 @@ const JobStatus = {
     Succeeded: "Succeeded",
     TimedOut: "TimedOut",
 };
-class InvalidNonceException extends CodePipelineServiceException {
+let InvalidNonceException$1 = class InvalidNonceException extends CodePipelineServiceException$1 {
     name = "InvalidNonceException";
     $fault = "client";
     constructor(opts) {
@@ -3500,8 +3499,8 @@ class InvalidNonceException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidNonceException.prototype);
     }
-}
-class JobNotFoundException extends CodePipelineServiceException {
+};
+let JobNotFoundException$1 = class JobNotFoundException extends CodePipelineServiceException$1 {
     name = "JobNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3512,8 +3511,8 @@ class JobNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, JobNotFoundException.prototype);
     }
-}
-class ValidationException extends CodePipelineServiceException {
+};
+let ValidationException$1 = class ValidationException extends CodePipelineServiceException$1 {
     name = "ValidationException";
     $fault = "client";
     constructor(opts) {
@@ -3524,8 +3523,8 @@ class ValidationException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ValidationException.prototype);
     }
-}
-class InvalidClientTokenException extends CodePipelineServiceException {
+};
+let InvalidClientTokenException$1 = class InvalidClientTokenException extends CodePipelineServiceException$1 {
     name = "InvalidClientTokenException";
     $fault = "client";
     constructor(opts) {
@@ -3536,7 +3535,7 @@ class InvalidClientTokenException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidClientTokenException.prototype);
     }
-}
+};
 const ActionCategory = {
     Approval: "Approval",
     Build: "Build",
@@ -3570,7 +3569,7 @@ const StartTimeRange = {
     All: "All",
     Latest: "Latest",
 };
-class ActionExecutionNotFoundException extends CodePipelineServiceException {
+let ActionExecutionNotFoundException$1 = class ActionExecutionNotFoundException extends CodePipelineServiceException$1 {
     name = "ActionExecutionNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3581,8 +3580,8 @@ class ActionExecutionNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ActionExecutionNotFoundException.prototype);
     }
-}
-class ActionNotFoundException extends CodePipelineServiceException {
+};
+let ActionNotFoundException$1 = class ActionNotFoundException extends CodePipelineServiceException$1 {
     name = "ActionNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3593,12 +3592,12 @@ class ActionNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ActionNotFoundException.prototype);
     }
-}
+};
 const ExecutorType = {
     JobWorker: "JobWorker",
     Lambda: "Lambda",
 };
-class ActionTypeNotFoundException extends CodePipelineServiceException {
+let ActionTypeNotFoundException$1 = class ActionTypeNotFoundException extends CodePipelineServiceException$1 {
     name = "ActionTypeNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3609,8 +3608,8 @@ class ActionTypeNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ActionTypeNotFoundException.prototype);
     }
-}
-class ApprovalAlreadyCompletedException extends CodePipelineServiceException {
+};
+let ApprovalAlreadyCompletedException$1 = class ApprovalAlreadyCompletedException extends CodePipelineServiceException$1 {
     name = "ApprovalAlreadyCompletedException";
     $fault = "client";
     constructor(opts) {
@@ -3621,7 +3620,7 @@ class ApprovalAlreadyCompletedException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ApprovalAlreadyCompletedException.prototype);
     }
-}
+};
 const ApprovalStatus = {
     Approved: "Approved",
     Rejected: "Rejected",
@@ -3650,7 +3649,7 @@ const RuleOwner = {
 const BlockerType = {
     Schedule: "Schedule",
 };
-class ConcurrentModificationException extends CodePipelineServiceException {
+let ConcurrentModificationException$1 = class ConcurrentModificationException extends CodePipelineServiceException$1 {
     name = "ConcurrentModificationException";
     $fault = "client";
     constructor(opts) {
@@ -3661,8 +3660,8 @@ class ConcurrentModificationException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ConcurrentModificationException.prototype);
     }
-}
-class InvalidTagsException extends CodePipelineServiceException {
+};
+let InvalidTagsException$1 = class InvalidTagsException extends CodePipelineServiceException$1 {
     name = "InvalidTagsException";
     $fault = "client";
     constructor(opts) {
@@ -3673,8 +3672,8 @@ class InvalidTagsException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidTagsException.prototype);
     }
-}
-class LimitExceededException extends CodePipelineServiceException {
+};
+let LimitExceededException$1 = class LimitExceededException extends CodePipelineServiceException$1 {
     name = "LimitExceededException";
     $fault = "client";
     constructor(opts) {
@@ -3685,8 +3684,8 @@ class LimitExceededException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, LimitExceededException.prototype);
     }
-}
-class TooManyTagsException extends CodePipelineServiceException {
+};
+let TooManyTagsException$1 = class TooManyTagsException extends CodePipelineServiceException$1 {
     name = "TooManyTagsException";
     $fault = "client";
     constructor(opts) {
@@ -3697,7 +3696,7 @@ class TooManyTagsException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, TooManyTagsException.prototype);
     }
-}
+};
 const ExecutionMode = {
     PARALLEL: "PARALLEL",
     QUEUED: "QUEUED",
@@ -3719,7 +3718,7 @@ const GitPullRequestEventType = {
 const PipelineTriggerProviderType = {
     CodeStarSourceConnection: "CodeStarSourceConnection",
 };
-class InvalidActionDeclarationException extends CodePipelineServiceException {
+let InvalidActionDeclarationException$1 = class InvalidActionDeclarationException extends CodePipelineServiceException$1 {
     name = "InvalidActionDeclarationException";
     $fault = "client";
     constructor(opts) {
@@ -3730,8 +3729,8 @@ class InvalidActionDeclarationException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidActionDeclarationException.prototype);
     }
-}
-class InvalidBlockerDeclarationException extends CodePipelineServiceException {
+};
+let InvalidBlockerDeclarationException$1 = class InvalidBlockerDeclarationException extends CodePipelineServiceException$1 {
     name = "InvalidBlockerDeclarationException";
     $fault = "client";
     constructor(opts) {
@@ -3742,8 +3741,8 @@ class InvalidBlockerDeclarationException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidBlockerDeclarationException.prototype);
     }
-}
-class InvalidStageDeclarationException extends CodePipelineServiceException {
+};
+let InvalidStageDeclarationException$1 = class InvalidStageDeclarationException extends CodePipelineServiceException$1 {
     name = "InvalidStageDeclarationException";
     $fault = "client";
     constructor(opts) {
@@ -3754,8 +3753,8 @@ class InvalidStageDeclarationException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidStageDeclarationException.prototype);
     }
-}
-class InvalidStructureException extends CodePipelineServiceException {
+};
+let InvalidStructureException$1 = class InvalidStructureException extends CodePipelineServiceException$1 {
     name = "InvalidStructureException";
     $fault = "client";
     constructor(opts) {
@@ -3766,8 +3765,8 @@ class InvalidStructureException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidStructureException.prototype);
     }
-}
-class PipelineNameInUseException extends CodePipelineServiceException {
+};
+let PipelineNameInUseException$1 = class PipelineNameInUseException extends CodePipelineServiceException$1 {
     name = "PipelineNameInUseException";
     $fault = "client";
     constructor(opts) {
@@ -3778,8 +3777,8 @@ class PipelineNameInUseException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, PipelineNameInUseException.prototype);
     }
-}
-class WebhookNotFoundException extends CodePipelineServiceException {
+};
+let WebhookNotFoundException$1 = class WebhookNotFoundException extends CodePipelineServiceException$1 {
     name = "WebhookNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3790,12 +3789,12 @@ class WebhookNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, WebhookNotFoundException.prototype);
     }
-}
+};
 const StageTransitionType = {
     Inbound: "Inbound",
     Outbound: "Outbound",
 };
-class PipelineNotFoundException extends CodePipelineServiceException {
+let PipelineNotFoundException$1 = class PipelineNotFoundException extends CodePipelineServiceException$1 {
     name = "PipelineNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3806,8 +3805,8 @@ class PipelineNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, PipelineNotFoundException.prototype);
     }
-}
-class StageNotFoundException extends CodePipelineServiceException {
+};
+let StageNotFoundException$1 = class StageNotFoundException extends CodePipelineServiceException$1 {
     name = "StageNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3818,8 +3817,8 @@ class StageNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, StageNotFoundException.prototype);
     }
-}
-class PipelineVersionNotFoundException extends CodePipelineServiceException {
+};
+let PipelineVersionNotFoundException$1 = class PipelineVersionNotFoundException extends CodePipelineServiceException$1 {
     name = "PipelineVersionNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3830,7 +3829,7 @@ class PipelineVersionNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, PipelineVersionNotFoundException.prototype);
     }
-}
+};
 const ExecutionType = {
     ROLLBACK: "ROLLBACK",
     STANDARD: "STANDARD",
@@ -3855,7 +3854,7 @@ const TriggerType = {
     Webhook: "Webhook",
     WebhookV2: "WebhookV2",
 };
-class PipelineExecutionNotFoundException extends CodePipelineServiceException {
+let PipelineExecutionNotFoundException$1 = class PipelineExecutionNotFoundException extends CodePipelineServiceException$1 {
     name = "PipelineExecutionNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3866,7 +3865,7 @@ class PipelineExecutionNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, PipelineExecutionNotFoundException.prototype);
     }
-}
+};
 const ConditionExecutionStatus = {
     Abandoned: "Abandoned",
     Cancelled: "Cancelled",
@@ -3895,7 +3894,7 @@ const RetryTrigger = {
     AutomatedStageRetry: "AutomatedStageRetry",
     ManualStageRetry: "ManualStageRetry",
 };
-class InvalidJobException extends CodePipelineServiceException {
+let InvalidJobException$1 = class InvalidJobException extends CodePipelineServiceException$1 {
     name = "InvalidJobException";
     $fault = "client";
     constructor(opts) {
@@ -3906,8 +3905,8 @@ class InvalidJobException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidJobException.prototype);
     }
-}
-class InvalidNextTokenException extends CodePipelineServiceException {
+};
+let InvalidNextTokenException$1 = class InvalidNextTokenException extends CodePipelineServiceException$1 {
     name = "InvalidNextTokenException";
     $fault = "client";
     constructor(opts) {
@@ -3918,7 +3917,7 @@ class InvalidNextTokenException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidNextTokenException.prototype);
     }
-}
+};
 const TargetFilterName = {
     TARGET_STATUS: "TARGET_STATUS",
 };
@@ -3927,7 +3926,7 @@ const RuleConfigurationPropertyType = {
     Number: "Number",
     String: "String",
 };
-class InvalidArnException extends CodePipelineServiceException {
+let InvalidArnException$1 = class InvalidArnException extends CodePipelineServiceException$1 {
     name = "InvalidArnException";
     $fault = "client";
     constructor(opts) {
@@ -3938,8 +3937,8 @@ class InvalidArnException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidArnException.prototype);
     }
-}
-class ResourceNotFoundException extends CodePipelineServiceException {
+};
+let ResourceNotFoundException$1 = class ResourceNotFoundException extends CodePipelineServiceException$1 {
     name = "ResourceNotFoundException";
     $fault = "client";
     constructor(opts) {
@@ -3950,13 +3949,13 @@ class ResourceNotFoundException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ResourceNotFoundException.prototype);
     }
-}
+};
 const WebhookAuthenticationType = {
     GITHUB_HMAC: "GITHUB_HMAC",
     IP: "IP",
     UNAUTHENTICATED: "UNAUTHENTICATED",
 };
-class ConcurrentPipelineExecutionsLimitExceededException extends CodePipelineServiceException {
+let ConcurrentPipelineExecutionsLimitExceededException$1 = class ConcurrentPipelineExecutionsLimitExceededException extends CodePipelineServiceException$1 {
     name = "ConcurrentPipelineExecutionsLimitExceededException";
     $fault = "client";
     constructor(opts) {
@@ -3967,8 +3966,8 @@ class ConcurrentPipelineExecutionsLimitExceededException extends CodePipelineSer
         });
         Object.setPrototypeOf(this, ConcurrentPipelineExecutionsLimitExceededException.prototype);
     }
-}
-class ConditionNotOverridableException extends CodePipelineServiceException {
+};
+let ConditionNotOverridableException$1 = class ConditionNotOverridableException extends CodePipelineServiceException$1 {
     name = "ConditionNotOverridableException";
     $fault = "client";
     constructor(opts) {
@@ -3979,8 +3978,8 @@ class ConditionNotOverridableException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ConditionNotOverridableException.prototype);
     }
-}
-class ConflictException extends CodePipelineServiceException {
+};
+let ConflictException$1 = class ConflictException extends CodePipelineServiceException$1 {
     name = "ConflictException";
     $fault = "client";
     constructor(opts) {
@@ -3991,8 +3990,8 @@ class ConflictException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, ConflictException.prototype);
     }
-}
-class NotLatestPipelineExecutionException extends CodePipelineServiceException {
+};
+let NotLatestPipelineExecutionException$1 = class NotLatestPipelineExecutionException extends CodePipelineServiceException$1 {
     name = "NotLatestPipelineExecutionException";
     $fault = "client";
     constructor(opts) {
@@ -4003,12 +4002,12 @@ class NotLatestPipelineExecutionException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, NotLatestPipelineExecutionException.prototype);
     }
-}
+};
 const ConditionType = {
     BEFORE_ENTRY: "BEFORE_ENTRY",
     ON_SUCCESS: "ON_SUCCESS",
 };
-class InvalidApprovalTokenException extends CodePipelineServiceException {
+let InvalidApprovalTokenException$1 = class InvalidApprovalTokenException extends CodePipelineServiceException$1 {
     name = "InvalidApprovalTokenException";
     $fault = "client";
     constructor(opts) {
@@ -4019,8 +4018,8 @@ class InvalidApprovalTokenException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidApprovalTokenException.prototype);
     }
-}
-class InvalidJobStateException extends CodePipelineServiceException {
+};
+let InvalidJobStateException$1 = class InvalidJobStateException extends CodePipelineServiceException$1 {
     name = "InvalidJobStateException";
     $fault = "client";
     constructor(opts) {
@@ -4031,7 +4030,7 @@ class InvalidJobStateException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, InvalidJobStateException.prototype);
     }
-}
+};
 const FailureType = {
     ConfigurationError: "ConfigurationError",
     JobFailed: "JobFailed",
@@ -4040,7 +4039,7 @@ const FailureType = {
     RevisionUnavailable: "RevisionUnavailable",
     SystemUnavailable: "SystemUnavailable",
 };
-class OutputVariablesSizeExceededException extends CodePipelineServiceException {
+let OutputVariablesSizeExceededException$1 = class OutputVariablesSizeExceededException extends CodePipelineServiceException$1 {
     name = "OutputVariablesSizeExceededException";
     $fault = "client";
     constructor(opts) {
@@ -4051,8 +4050,8 @@ class OutputVariablesSizeExceededException extends CodePipelineServiceException 
         });
         Object.setPrototypeOf(this, OutputVariablesSizeExceededException.prototype);
     }
-}
-class InvalidWebhookAuthenticationParametersException extends CodePipelineServiceException {
+};
+let InvalidWebhookAuthenticationParametersException$1 = class InvalidWebhookAuthenticationParametersException extends CodePipelineServiceException$1 {
     name = "InvalidWebhookAuthenticationParametersException";
     $fault = "client";
     constructor(opts) {
@@ -4063,8 +4062,8 @@ class InvalidWebhookAuthenticationParametersException extends CodePipelineServic
         });
         Object.setPrototypeOf(this, InvalidWebhookAuthenticationParametersException.prototype);
     }
-}
-class InvalidWebhookFilterPatternException extends CodePipelineServiceException {
+};
+let InvalidWebhookFilterPatternException$1 = class InvalidWebhookFilterPatternException extends CodePipelineServiceException$1 {
     name = "InvalidWebhookFilterPatternException";
     $fault = "client";
     constructor(opts) {
@@ -4075,8 +4074,8 @@ class InvalidWebhookFilterPatternException extends CodePipelineServiceException 
         });
         Object.setPrototypeOf(this, InvalidWebhookFilterPatternException.prototype);
     }
-}
-class StageNotRetryableException extends CodePipelineServiceException {
+};
+let StageNotRetryableException$1 = class StageNotRetryableException extends CodePipelineServiceException$1 {
     name = "StageNotRetryableException";
     $fault = "client";
     constructor(opts) {
@@ -4087,8 +4086,8 @@ class StageNotRetryableException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, StageNotRetryableException.prototype);
     }
-}
-class PipelineExecutionOutdatedException extends CodePipelineServiceException {
+};
+let PipelineExecutionOutdatedException$1 = class PipelineExecutionOutdatedException extends CodePipelineServiceException$1 {
     name = "PipelineExecutionOutdatedException";
     $fault = "client";
     constructor(opts) {
@@ -4099,8 +4098,8 @@ class PipelineExecutionOutdatedException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, PipelineExecutionOutdatedException.prototype);
     }
-}
-class UnableToRollbackStageException extends CodePipelineServiceException {
+};
+let UnableToRollbackStageException$1 = class UnableToRollbackStageException extends CodePipelineServiceException$1 {
     name = "UnableToRollbackStageException";
     $fault = "client";
     constructor(opts) {
@@ -4111,14 +4110,14 @@ class UnableToRollbackStageException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, UnableToRollbackStageException.prototype);
     }
-}
+};
 const SourceRevisionType = {
     COMMIT_ID: "COMMIT_ID",
     IMAGE_DIGEST: "IMAGE_DIGEST",
     S3_OBJECT_KEY: "S3_OBJECT_KEY",
     S3_OBJECT_VERSION_ID: "S3_OBJECT_VERSION_ID",
 };
-class DuplicatedStopRequestException extends CodePipelineServiceException {
+let DuplicatedStopRequestException$1 = class DuplicatedStopRequestException extends CodePipelineServiceException$1 {
     name = "DuplicatedStopRequestException";
     $fault = "client";
     constructor(opts) {
@@ -4129,8 +4128,8 @@ class DuplicatedStopRequestException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, DuplicatedStopRequestException.prototype);
     }
-}
-class PipelineExecutionNotStoppableException extends CodePipelineServiceException {
+};
+let PipelineExecutionNotStoppableException$1 = class PipelineExecutionNotStoppableException extends CodePipelineServiceException$1 {
     name = "PipelineExecutionNotStoppableException";
     $fault = "client";
     constructor(opts) {
@@ -4141,8 +4140,8 @@ class PipelineExecutionNotStoppableException extends CodePipelineServiceExceptio
         });
         Object.setPrototypeOf(this, PipelineExecutionNotStoppableException.prototype);
     }
-}
-class RequestFailedException extends CodePipelineServiceException {
+};
+let RequestFailedException$1 = class RequestFailedException extends CodePipelineServiceException$1 {
     name = "RequestFailedException";
     $fault = "client";
     constructor(opts) {
@@ -4153,1855 +4152,2115 @@ class RequestFailedException extends CodePipelineServiceException {
         });
         Object.setPrototypeOf(this, RequestFailedException.prototype);
     }
-}
-const AWSSessionCredentialsFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.accessKeyId && { accessKeyId: smithyClient.SENSITIVE_STRING }),
-    ...(obj.secretAccessKey && { secretAccessKey: smithyClient.SENSITIVE_STRING }),
-    ...(obj.sessionToken && { sessionToken: smithyClient.SENSITIVE_STRING }),
-});
-const JobDataFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.artifactCredentials && { artifactCredentials: smithyClient.SENSITIVE_STRING }),
-});
-const JobDetailsFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.data && { data: JobDataFilterSensitiveLog(obj.data) }),
-});
-const GetJobDetailsOutputFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.jobDetails && { jobDetails: JobDetailsFilterSensitiveLog(obj.jobDetails) }),
-});
-const ThirdPartyJobDataFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.artifactCredentials && { artifactCredentials: smithyClient.SENSITIVE_STRING }),
-});
-const ThirdPartyJobDetailsFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.data && { data: ThirdPartyJobDataFilterSensitiveLog(obj.data) }),
-});
-const GetThirdPartyJobDetailsOutputFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.jobDetails && { jobDetails: ThirdPartyJobDetailsFilterSensitiveLog(obj.jobDetails) }),
-});
-const JobFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.data && { data: JobDataFilterSensitiveLog(obj.data) }),
-});
-const PollForJobsOutputFilterSensitiveLog = (obj) => ({
-    ...obj,
-    ...(obj.jobs && { jobs: obj.jobs.map((item) => JobFilterSensitiveLog(item)) }),
-});
+};
 
-const se_AcknowledgeJobCommand = async (input, context) => {
-    const headers = sharedHeaders("AcknowledgeJob");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_AcknowledgeThirdPartyJobCommand = async (input, context) => {
-    const headers = sharedHeaders("AcknowledgeThirdPartyJob");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_CreateCustomActionTypeCommand = async (input, context) => {
-    const headers = sharedHeaders("CreateCustomActionType");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_CreatePipelineCommand = async (input, context) => {
-    const headers = sharedHeaders("CreatePipeline");
-    let body;
-    body = JSON.stringify(se_CreatePipelineInput(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_DeleteCustomActionTypeCommand = async (input, context) => {
-    const headers = sharedHeaders("DeleteCustomActionType");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_DeletePipelineCommand = async (input, context) => {
-    const headers = sharedHeaders("DeletePipeline");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_DeleteWebhookCommand = async (input, context) => {
-    const headers = sharedHeaders("DeleteWebhook");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_DeregisterWebhookWithThirdPartyCommand = async (input, context) => {
-    const headers = sharedHeaders("DeregisterWebhookWithThirdParty");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_DisableStageTransitionCommand = async (input, context) => {
-    const headers = sharedHeaders("DisableStageTransition");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_EnableStageTransitionCommand = async (input, context) => {
-    const headers = sharedHeaders("EnableStageTransition");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_GetActionTypeCommand = async (input, context) => {
-    const headers = sharedHeaders("GetActionType");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_GetJobDetailsCommand = async (input, context) => {
-    const headers = sharedHeaders("GetJobDetails");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_GetPipelineCommand = async (input, context) => {
-    const headers = sharedHeaders("GetPipeline");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_GetPipelineExecutionCommand = async (input, context) => {
-    const headers = sharedHeaders("GetPipelineExecution");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_GetPipelineStateCommand = async (input, context) => {
-    const headers = sharedHeaders("GetPipelineState");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_GetThirdPartyJobDetailsCommand = async (input, context) => {
-    const headers = sharedHeaders("GetThirdPartyJobDetails");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListActionExecutionsCommand = async (input, context) => {
-    const headers = sharedHeaders("ListActionExecutions");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListActionTypesCommand = async (input, context) => {
-    const headers = sharedHeaders("ListActionTypes");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListDeployActionExecutionTargetsCommand = async (input, context) => {
-    const headers = sharedHeaders("ListDeployActionExecutionTargets");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListPipelineExecutionsCommand = async (input, context) => {
-    const headers = sharedHeaders("ListPipelineExecutions");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListPipelinesCommand = async (input, context) => {
-    const headers = sharedHeaders("ListPipelines");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListRuleExecutionsCommand = async (input, context) => {
-    const headers = sharedHeaders("ListRuleExecutions");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListRuleTypesCommand = async (input, context) => {
-    const headers = sharedHeaders("ListRuleTypes");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListTagsForResourceCommand = async (input, context) => {
-    const headers = sharedHeaders("ListTagsForResource");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_ListWebhooksCommand = async (input, context) => {
-    const headers = sharedHeaders("ListWebhooks");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_OverrideStageConditionCommand = async (input, context) => {
-    const headers = sharedHeaders("OverrideStageCondition");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PollForJobsCommand = async (input, context) => {
-    const headers = sharedHeaders("PollForJobs");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PollForThirdPartyJobsCommand = async (input, context) => {
-    const headers = sharedHeaders("PollForThirdPartyJobs");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PutActionRevisionCommand = async (input, context) => {
-    const headers = sharedHeaders("PutActionRevision");
-    let body;
-    body = JSON.stringify(se_PutActionRevisionInput(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PutApprovalResultCommand = async (input, context) => {
-    const headers = sharedHeaders("PutApprovalResult");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PutJobFailureResultCommand = async (input, context) => {
-    const headers = sharedHeaders("PutJobFailureResult");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PutJobSuccessResultCommand = async (input, context) => {
-    const headers = sharedHeaders("PutJobSuccessResult");
-    let body;
-    body = JSON.stringify(se_PutJobSuccessResultInput(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PutThirdPartyJobFailureResultCommand = async (input, context) => {
-    const headers = sharedHeaders("PutThirdPartyJobFailureResult");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PutThirdPartyJobSuccessResultCommand = async (input, context) => {
-    const headers = sharedHeaders("PutThirdPartyJobSuccessResult");
-    let body;
-    body = JSON.stringify(se_PutThirdPartyJobSuccessResultInput(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_PutWebhookCommand = async (input, context) => {
-    const headers = sharedHeaders("PutWebhook");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_RegisterWebhookWithThirdPartyCommand = async (input, context) => {
-    const headers = sharedHeaders("RegisterWebhookWithThirdParty");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_RetryStageExecutionCommand = async (input, context) => {
-    const headers = sharedHeaders("RetryStageExecution");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_RollbackStageCommand = async (input, context) => {
-    const headers = sharedHeaders("RollbackStage");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_StartPipelineExecutionCommand = async (input, context) => {
-    const headers = sharedHeaders("StartPipelineExecution");
-    let body;
-    body = JSON.stringify(se_StartPipelineExecutionInput(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_StopPipelineExecutionCommand = async (input, context) => {
-    const headers = sharedHeaders("StopPipelineExecution");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_TagResourceCommand = async (input, context) => {
-    const headers = sharedHeaders("TagResource");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_UntagResourceCommand = async (input, context) => {
-    const headers = sharedHeaders("UntagResource");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_UpdateActionTypeCommand = async (input, context) => {
-    const headers = sharedHeaders("UpdateActionType");
-    let body;
-    body = JSON.stringify(smithyClient._json(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const se_UpdatePipelineCommand = async (input, context) => {
-    const headers = sharedHeaders("UpdatePipeline");
-    let body;
-    body = JSON.stringify(se_UpdatePipelineInput(input));
-    return buildHttpRpcRequest(context, headers, "/", undefined, body);
-};
-const de_AcknowledgeJobCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_AcknowledgeThirdPartyJobCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_CreateCustomActionTypeCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_CreatePipelineCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_CreatePipelineOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_DeleteCustomActionTypeCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_DeletePipelineCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_DeleteWebhookCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_DeregisterWebhookWithThirdPartyCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_DisableStageTransitionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_EnableStageTransitionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_GetActionTypeCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_GetJobDetailsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_GetPipelineCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_GetPipelineOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_GetPipelineExecutionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_GetPipelineExecutionOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_GetPipelineStateCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_GetPipelineStateOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_GetThirdPartyJobDetailsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListActionExecutionsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_ListActionExecutionsOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListActionTypesCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListDeployActionExecutionTargetsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_ListDeployActionExecutionTargetsOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListPipelineExecutionsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_ListPipelineExecutionsOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListPipelinesCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_ListPipelinesOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListRuleExecutionsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_ListRuleExecutionsOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListRuleTypesCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListTagsForResourceCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_ListWebhooksCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_ListWebhooksOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_OverrideStageConditionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_PollForJobsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_PollForThirdPartyJobsCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_PutActionRevisionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_PutApprovalResultCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_PutApprovalResultOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_PutJobFailureResultCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_PutJobSuccessResultCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_PutThirdPartyJobFailureResultCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_PutThirdPartyJobSuccessResultCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_PutWebhookCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_PutWebhookOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_RegisterWebhookWithThirdPartyCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_RetryStageExecutionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_RollbackStageCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_StartPipelineExecutionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_StopPipelineExecutionCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_TagResourceCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_UntagResourceCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = smithyClient._json(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_UpdateActionTypeCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    await smithyClient.collectBody(output.body, context);
-    const response = {
-        $metadata: deserializeMetadata(output),
-    };
-    return response;
-};
-const de_UpdatePipelineCommand = async (output, context) => {
-    if (output.statusCode >= 300) {
-        return de_CommandError(output, context);
-    }
-    const data = await core$1.parseJsonBody(output.body, context);
-    let contents = {};
-    contents = de_UpdatePipelineOutput(data);
-    const response = {
-        $metadata: deserializeMetadata(output),
-        ...contents,
-    };
-    return response;
-};
-const de_CommandError = async (output, context) => {
-    const parsedOutput = {
-        ...output,
-        body: await core$1.parseJsonErrorBody(output.body, context),
-    };
-    const errorCode = core$1.loadRestJsonErrorCode(output, parsedOutput.body);
-    switch (errorCode) {
-        case "InvalidNonceException":
-        case "com.amazonaws.codepipeline#InvalidNonceException":
-            throw await de_InvalidNonceExceptionRes(parsedOutput);
-        case "JobNotFoundException":
-        case "com.amazonaws.codepipeline#JobNotFoundException":
-            throw await de_JobNotFoundExceptionRes(parsedOutput);
-        case "ValidationException":
-        case "com.amazonaws.codepipeline#ValidationException":
-            throw await de_ValidationExceptionRes(parsedOutput);
-        case "InvalidClientTokenException":
-        case "com.amazonaws.codepipeline#InvalidClientTokenException":
-            throw await de_InvalidClientTokenExceptionRes(parsedOutput);
-        case "ConcurrentModificationException":
-        case "com.amazonaws.codepipeline#ConcurrentModificationException":
-            throw await de_ConcurrentModificationExceptionRes(parsedOutput);
-        case "InvalidTagsException":
-        case "com.amazonaws.codepipeline#InvalidTagsException":
-            throw await de_InvalidTagsExceptionRes(parsedOutput);
-        case "LimitExceededException":
-        case "com.amazonaws.codepipeline#LimitExceededException":
-            throw await de_LimitExceededExceptionRes(parsedOutput);
-        case "TooManyTagsException":
-        case "com.amazonaws.codepipeline#TooManyTagsException":
-            throw await de_TooManyTagsExceptionRes(parsedOutput);
-        case "InvalidActionDeclarationException":
-        case "com.amazonaws.codepipeline#InvalidActionDeclarationException":
-            throw await de_InvalidActionDeclarationExceptionRes(parsedOutput);
-        case "InvalidBlockerDeclarationException":
-        case "com.amazonaws.codepipeline#InvalidBlockerDeclarationException":
-            throw await de_InvalidBlockerDeclarationExceptionRes(parsedOutput);
-        case "InvalidStageDeclarationException":
-        case "com.amazonaws.codepipeline#InvalidStageDeclarationException":
-            throw await de_InvalidStageDeclarationExceptionRes(parsedOutput);
-        case "InvalidStructureException":
-        case "com.amazonaws.codepipeline#InvalidStructureException":
-            throw await de_InvalidStructureExceptionRes(parsedOutput);
-        case "PipelineNameInUseException":
-        case "com.amazonaws.codepipeline#PipelineNameInUseException":
-            throw await de_PipelineNameInUseExceptionRes(parsedOutput);
-        case "WebhookNotFoundException":
-        case "com.amazonaws.codepipeline#WebhookNotFoundException":
-            throw await de_WebhookNotFoundExceptionRes(parsedOutput);
-        case "PipelineNotFoundException":
-        case "com.amazonaws.codepipeline#PipelineNotFoundException":
-            throw await de_PipelineNotFoundExceptionRes(parsedOutput);
-        case "StageNotFoundException":
-        case "com.amazonaws.codepipeline#StageNotFoundException":
-            throw await de_StageNotFoundExceptionRes(parsedOutput);
-        case "ActionTypeNotFoundException":
-        case "com.amazonaws.codepipeline#ActionTypeNotFoundException":
-            throw await de_ActionTypeNotFoundExceptionRes(parsedOutput);
-        case "PipelineVersionNotFoundException":
-        case "com.amazonaws.codepipeline#PipelineVersionNotFoundException":
-            throw await de_PipelineVersionNotFoundExceptionRes(parsedOutput);
-        case "PipelineExecutionNotFoundException":
-        case "com.amazonaws.codepipeline#PipelineExecutionNotFoundException":
-            throw await de_PipelineExecutionNotFoundExceptionRes(parsedOutput);
-        case "InvalidJobException":
-        case "com.amazonaws.codepipeline#InvalidJobException":
-            throw await de_InvalidJobExceptionRes(parsedOutput);
-        case "InvalidNextTokenException":
-        case "com.amazonaws.codepipeline#InvalidNextTokenException":
-            throw await de_InvalidNextTokenExceptionRes(parsedOutput);
-        case "ActionExecutionNotFoundException":
-        case "com.amazonaws.codepipeline#ActionExecutionNotFoundException":
-            throw await de_ActionExecutionNotFoundExceptionRes(parsedOutput);
-        case "InvalidArnException":
-        case "com.amazonaws.codepipeline#InvalidArnException":
-            throw await de_InvalidArnExceptionRes(parsedOutput);
-        case "ResourceNotFoundException":
-        case "com.amazonaws.codepipeline#ResourceNotFoundException":
-            throw await de_ResourceNotFoundExceptionRes(parsedOutput);
-        case "ConcurrentPipelineExecutionsLimitExceededException":
-        case "com.amazonaws.codepipeline#ConcurrentPipelineExecutionsLimitExceededException":
-            throw await de_ConcurrentPipelineExecutionsLimitExceededExceptionRes(parsedOutput);
-        case "ConditionNotOverridableException":
-        case "com.amazonaws.codepipeline#ConditionNotOverridableException":
-            throw await de_ConditionNotOverridableExceptionRes(parsedOutput);
-        case "ConflictException":
-        case "com.amazonaws.codepipeline#ConflictException":
-            throw await de_ConflictExceptionRes(parsedOutput);
-        case "NotLatestPipelineExecutionException":
-        case "com.amazonaws.codepipeline#NotLatestPipelineExecutionException":
-            throw await de_NotLatestPipelineExecutionExceptionRes(parsedOutput);
-        case "ActionNotFoundException":
-        case "com.amazonaws.codepipeline#ActionNotFoundException":
-            throw await de_ActionNotFoundExceptionRes(parsedOutput);
-        case "ApprovalAlreadyCompletedException":
-        case "com.amazonaws.codepipeline#ApprovalAlreadyCompletedException":
-            throw await de_ApprovalAlreadyCompletedExceptionRes(parsedOutput);
-        case "InvalidApprovalTokenException":
-        case "com.amazonaws.codepipeline#InvalidApprovalTokenException":
-            throw await de_InvalidApprovalTokenExceptionRes(parsedOutput);
-        case "InvalidJobStateException":
-        case "com.amazonaws.codepipeline#InvalidJobStateException":
-            throw await de_InvalidJobStateExceptionRes(parsedOutput);
-        case "OutputVariablesSizeExceededException":
-        case "com.amazonaws.codepipeline#OutputVariablesSizeExceededException":
-            throw await de_OutputVariablesSizeExceededExceptionRes(parsedOutput);
-        case "InvalidWebhookAuthenticationParametersException":
-        case "com.amazonaws.codepipeline#InvalidWebhookAuthenticationParametersException":
-            throw await de_InvalidWebhookAuthenticationParametersExceptionRes(parsedOutput);
-        case "InvalidWebhookFilterPatternException":
-        case "com.amazonaws.codepipeline#InvalidWebhookFilterPatternException":
-            throw await de_InvalidWebhookFilterPatternExceptionRes(parsedOutput);
-        case "StageNotRetryableException":
-        case "com.amazonaws.codepipeline#StageNotRetryableException":
-            throw await de_StageNotRetryableExceptionRes(parsedOutput);
-        case "PipelineExecutionOutdatedException":
-        case "com.amazonaws.codepipeline#PipelineExecutionOutdatedException":
-            throw await de_PipelineExecutionOutdatedExceptionRes(parsedOutput);
-        case "UnableToRollbackStageException":
-        case "com.amazonaws.codepipeline#UnableToRollbackStageException":
-            throw await de_UnableToRollbackStageExceptionRes(parsedOutput);
-        case "DuplicatedStopRequestException":
-        case "com.amazonaws.codepipeline#DuplicatedStopRequestException":
-            throw await de_DuplicatedStopRequestExceptionRes(parsedOutput);
-        case "PipelineExecutionNotStoppableException":
-        case "com.amazonaws.codepipeline#PipelineExecutionNotStoppableException":
-            throw await de_PipelineExecutionNotStoppableExceptionRes(parsedOutput);
-        case "RequestFailedException":
-        case "com.amazonaws.codepipeline#RequestFailedException":
-            throw await de_RequestFailedExceptionRes(parsedOutput);
-        default:
-            const parsedBody = parsedOutput.body;
-            return throwDefaultError({
-                output,
-                parsedBody,
-                errorCode,
-            });
-    }
-};
-const de_ActionExecutionNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ActionExecutionNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ActionNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ActionNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ActionTypeNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ActionTypeNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ApprovalAlreadyCompletedExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ApprovalAlreadyCompletedException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ConcurrentModificationExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ConcurrentModificationException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ConcurrentPipelineExecutionsLimitExceededExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ConcurrentPipelineExecutionsLimitExceededException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ConditionNotOverridableExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ConditionNotOverridableException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ConflictExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ConflictException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_DuplicatedStopRequestExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new DuplicatedStopRequestException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidActionDeclarationExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidActionDeclarationException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidApprovalTokenExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidApprovalTokenException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidArnExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidArnException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidBlockerDeclarationExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidBlockerDeclarationException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidClientTokenExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidClientTokenException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidJobExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidJobException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidJobStateExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidJobStateException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidNextTokenExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidNextTokenException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidNonceExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidNonceException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidStageDeclarationExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidStageDeclarationException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidStructureExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidStructureException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidTagsExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidTagsException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidWebhookAuthenticationParametersExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidWebhookAuthenticationParametersException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_InvalidWebhookFilterPatternExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new InvalidWebhookFilterPatternException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_JobNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new JobNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_LimitExceededExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new LimitExceededException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_NotLatestPipelineExecutionExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new NotLatestPipelineExecutionException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_OutputVariablesSizeExceededExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new OutputVariablesSizeExceededException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_PipelineExecutionNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new PipelineExecutionNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_PipelineExecutionNotStoppableExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new PipelineExecutionNotStoppableException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_PipelineExecutionOutdatedExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new PipelineExecutionOutdatedException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_PipelineNameInUseExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new PipelineNameInUseException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_PipelineNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new PipelineNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_PipelineVersionNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new PipelineVersionNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_RequestFailedExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new RequestFailedException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ResourceNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ResourceNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_StageNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new StageNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_StageNotRetryableExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new StageNotRetryableException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_TooManyTagsExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new TooManyTagsException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_UnableToRollbackStageExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new UnableToRollbackStageException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_ValidationExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new ValidationException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const de_WebhookNotFoundExceptionRes = async (parsedOutput, context) => {
-    const body = parsedOutput.body;
-    const deserialized = smithyClient._json(body);
-    const exception = new WebhookNotFoundException({
-        $metadata: deserializeMetadata(parsedOutput),
-        ...deserialized,
-    });
-    return smithyClient.decorateServiceException(exception, body);
-};
-const se_ActionRevision = (input, context) => {
-    return smithyClient.take(input, {
-        created: (_) => _.getTime() / 1_000,
-        revisionChangeId: [],
-        revisionId: [],
-    });
-};
-const se_CreatePipelineInput = (input, context) => {
-    return smithyClient.take(input, {
-        pipeline: smithyClient._json,
-        tags: smithyClient._json,
-    });
-};
-const se_CurrentRevision = (input, context) => {
-    return smithyClient.take(input, {
-        changeIdentifier: [],
-        created: (_) => _.getTime() / 1_000,
-        revision: [],
-        revisionSummary: [],
-    });
-};
-const se_PutActionRevisionInput = (input, context) => {
-    return smithyClient.take(input, {
-        actionName: [],
-        actionRevision: (_) => se_ActionRevision(_),
-        pipelineName: [],
-        stageName: [],
-    });
-};
-const se_PutJobSuccessResultInput = (input, context) => {
-    return smithyClient.take(input, {
-        continuationToken: [],
-        currentRevision: (_) => se_CurrentRevision(_),
-        executionDetails: smithyClient._json,
-        jobId: [],
-        outputVariables: smithyClient._json,
-    });
-};
-const se_PutThirdPartyJobSuccessResultInput = (input, context) => {
-    return smithyClient.take(input, {
-        clientToken: [],
-        continuationToken: [],
-        currentRevision: (_) => se_CurrentRevision(_),
-        executionDetails: smithyClient._json,
-        jobId: [],
-    });
-};
-const se_StartPipelineExecutionInput = (input, context) => {
-    return smithyClient.take(input, {
-        clientRequestToken: [true, (_) => _ ?? uuid.v4()],
-        name: [],
-        sourceRevisions: smithyClient._json,
-        variables: smithyClient._json,
-    });
-};
-const se_UpdatePipelineInput = (input, context) => {
-    return smithyClient.take(input, {
-        pipeline: smithyClient._json,
-    });
-};
-const de_ActionExecution = (output, context) => {
-    return smithyClient.take(output, {
-        actionExecutionId: smithyClient.expectString,
-        errorDetails: smithyClient._json,
-        externalExecutionId: smithyClient.expectString,
-        externalExecutionUrl: smithyClient.expectString,
-        lastStatusChange: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        lastUpdatedBy: smithyClient.expectString,
-        logStreamARN: smithyClient.expectString,
-        percentComplete: smithyClient.expectInt32,
-        status: smithyClient.expectString,
-        summary: smithyClient.expectString,
-        token: smithyClient.expectString,
-    });
-};
-const de_ActionExecutionDetail = (output, context) => {
-    return smithyClient.take(output, {
-        actionExecutionId: smithyClient.expectString,
-        actionName: smithyClient.expectString,
-        input: smithyClient._json,
-        lastUpdateTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        output: smithyClient._json,
-        pipelineExecutionId: smithyClient.expectString,
-        pipelineVersion: smithyClient.expectInt32,
-        stageName: smithyClient.expectString,
-        startTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        status: smithyClient.expectString,
-        updatedBy: smithyClient.expectString,
-    });
-};
-const de_ActionExecutionDetailList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_ActionExecutionDetail(entry);
-    });
-    return retVal;
-};
-const de_ActionRevision = (output, context) => {
-    return smithyClient.take(output, {
-        created: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        revisionChangeId: smithyClient.expectString,
-        revisionId: smithyClient.expectString,
-    });
-};
-const de_ActionState = (output, context) => {
-    return smithyClient.take(output, {
-        actionName: smithyClient.expectString,
-        currentRevision: (_) => de_ActionRevision(_),
-        entityUrl: smithyClient.expectString,
-        latestExecution: (_) => de_ActionExecution(_),
-        revisionUrl: smithyClient.expectString,
-    });
-};
-const de_ActionStateList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_ActionState(entry);
-    });
-    return retVal;
-};
-const de_ArtifactRevision = (output, context) => {
-    return smithyClient.take(output, {
-        created: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        name: smithyClient.expectString,
-        revisionChangeIdentifier: smithyClient.expectString,
-        revisionId: smithyClient.expectString,
-        revisionSummary: smithyClient.expectString,
-        revisionUrl: smithyClient.expectString,
-    });
-};
-const de_ArtifactRevisionList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_ArtifactRevision(entry);
-    });
-    return retVal;
-};
-const de_ConditionExecution = (output, context) => {
-    return smithyClient.take(output, {
-        lastStatusChange: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        status: smithyClient.expectString,
-        summary: smithyClient.expectString,
-    });
-};
-const de_ConditionState = (output, context) => {
-    return smithyClient.take(output, {
-        latestExecution: (_) => de_ConditionExecution(_),
-        ruleStates: (_) => de_RuleStateList(_),
-    });
-};
-const de_ConditionStateList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_ConditionState(entry);
-    });
-    return retVal;
-};
-const de_CreatePipelineOutput = (output, context) => {
-    return smithyClient.take(output, {
-        pipeline: smithyClient._json,
-        tags: smithyClient._json,
-    });
-};
-const de_DeployActionExecutionTarget = (output, context) => {
-    return smithyClient.take(output, {
-        endTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        events: (_) => de_DeployTargetEventList(_),
-        startTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        status: smithyClient.expectString,
-        targetId: smithyClient.expectString,
-        targetType: smithyClient.expectString,
-    });
-};
-const de_DeployActionExecutionTargetList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_DeployActionExecutionTarget(entry);
-    });
-    return retVal;
-};
-const de_DeployTargetEvent = (output, context) => {
-    return smithyClient.take(output, {
-        context: smithyClient._json,
-        endTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        name: smithyClient.expectString,
-        startTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        status: smithyClient.expectString,
-    });
-};
-const de_DeployTargetEventList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_DeployTargetEvent(entry);
-    });
-    return retVal;
-};
-const de_GetPipelineExecutionOutput = (output, context) => {
-    return smithyClient.take(output, {
-        pipelineExecution: (_) => de_PipelineExecution(_),
-    });
-};
-const de_GetPipelineOutput = (output, context) => {
-    return smithyClient.take(output, {
-        metadata: (_) => de_PipelineMetadata(_),
-        pipeline: smithyClient._json,
-    });
-};
-const de_GetPipelineStateOutput = (output, context) => {
-    return smithyClient.take(output, {
-        created: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        pipelineName: smithyClient.expectString,
-        pipelineVersion: smithyClient.expectInt32,
-        stageStates: (_) => de_StageStateList(_),
-        updated: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-    });
-};
-const de_ListActionExecutionsOutput = (output, context) => {
-    return smithyClient.take(output, {
-        actionExecutionDetails: (_) => de_ActionExecutionDetailList(_),
-        nextToken: smithyClient.expectString,
-    });
-};
-const de_ListDeployActionExecutionTargetsOutput = (output, context) => {
-    return smithyClient.take(output, {
-        nextToken: smithyClient.expectString,
-        targets: (_) => de_DeployActionExecutionTargetList(_),
-    });
-};
-const de_ListPipelineExecutionsOutput = (output, context) => {
-    return smithyClient.take(output, {
-        nextToken: smithyClient.expectString,
-        pipelineExecutionSummaries: (_) => de_PipelineExecutionSummaryList(_),
-    });
-};
-const de_ListPipelinesOutput = (output, context) => {
-    return smithyClient.take(output, {
-        nextToken: smithyClient.expectString,
-        pipelines: (_) => de_PipelineList(_),
-    });
-};
-const de_ListRuleExecutionsOutput = (output, context) => {
-    return smithyClient.take(output, {
-        nextToken: smithyClient.expectString,
-        ruleExecutionDetails: (_) => de_RuleExecutionDetailList(_),
-    });
-};
-const de_ListWebhookItem = (output, context) => {
-    return smithyClient.take(output, {
-        arn: smithyClient.expectString,
-        definition: smithyClient._json,
-        errorCode: smithyClient.expectString,
-        errorMessage: smithyClient.expectString,
-        lastTriggered: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        tags: smithyClient._json,
-        url: smithyClient.expectString,
-    });
-};
-const de_ListWebhooksOutput = (output, context) => {
-    return smithyClient.take(output, {
-        NextToken: smithyClient.expectString,
-        webhooks: (_) => de_WebhookList(_),
-    });
-};
-const de_PipelineExecution = (output, context) => {
-    return smithyClient.take(output, {
-        artifactRevisions: (_) => de_ArtifactRevisionList(_),
-        executionMode: smithyClient.expectString,
-        executionType: smithyClient.expectString,
-        pipelineExecutionId: smithyClient.expectString,
-        pipelineName: smithyClient.expectString,
-        pipelineVersion: smithyClient.expectInt32,
-        rollbackMetadata: smithyClient._json,
-        status: smithyClient.expectString,
-        statusSummary: smithyClient.expectString,
-        trigger: smithyClient._json,
-        variables: smithyClient._json,
-    });
-};
-const de_PipelineExecutionSummary = (output, context) => {
-    return smithyClient.take(output, {
-        executionMode: smithyClient.expectString,
-        executionType: smithyClient.expectString,
-        lastUpdateTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        pipelineExecutionId: smithyClient.expectString,
-        rollbackMetadata: smithyClient._json,
-        sourceRevisions: smithyClient._json,
-        startTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        status: smithyClient.expectString,
-        statusSummary: smithyClient.expectString,
-        stopTrigger: smithyClient._json,
-        trigger: smithyClient._json,
-    });
-};
-const de_PipelineExecutionSummaryList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_PipelineExecutionSummary(entry);
-    });
-    return retVal;
-};
-const de_PipelineList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_PipelineSummary(entry);
-    });
-    return retVal;
-};
-const de_PipelineMetadata = (output, context) => {
-    return smithyClient.take(output, {
-        created: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        pipelineArn: smithyClient.expectString,
-        pollingDisabledAt: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        updated: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-    });
-};
-const de_PipelineSummary = (output, context) => {
-    return smithyClient.take(output, {
-        created: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        executionMode: smithyClient.expectString,
-        name: smithyClient.expectString,
-        pipelineType: smithyClient.expectString,
-        updated: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        version: smithyClient.expectInt32,
-    });
-};
-const de_PutApprovalResultOutput = (output, context) => {
-    return smithyClient.take(output, {
-        approvedAt: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-    });
-};
-const de_PutWebhookOutput = (output, context) => {
-    return smithyClient.take(output, {
-        webhook: (_) => de_ListWebhookItem(_),
-    });
-};
-const de_RuleExecution = (output, context) => {
-    return smithyClient.take(output, {
-        errorDetails: smithyClient._json,
-        externalExecutionId: smithyClient.expectString,
-        externalExecutionUrl: smithyClient.expectString,
-        lastStatusChange: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        lastUpdatedBy: smithyClient.expectString,
-        ruleExecutionId: smithyClient.expectString,
-        status: smithyClient.expectString,
-        summary: smithyClient.expectString,
-        token: smithyClient.expectString,
-    });
-};
-const de_RuleExecutionDetail = (output, context) => {
-    return smithyClient.take(output, {
-        input: smithyClient._json,
-        lastUpdateTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        output: smithyClient._json,
-        pipelineExecutionId: smithyClient.expectString,
-        pipelineVersion: smithyClient.expectInt32,
-        ruleExecutionId: smithyClient.expectString,
-        ruleName: smithyClient.expectString,
-        stageName: smithyClient.expectString,
-        startTime: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        status: smithyClient.expectString,
-        updatedBy: smithyClient.expectString,
-    });
-};
-const de_RuleExecutionDetailList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_RuleExecutionDetail(entry);
-    });
-    return retVal;
-};
-const de_RuleRevision = (output, context) => {
-    return smithyClient.take(output, {
-        created: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        revisionChangeId: smithyClient.expectString,
-        revisionId: smithyClient.expectString,
-    });
-};
-const de_RuleState = (output, context) => {
-    return smithyClient.take(output, {
-        currentRevision: (_) => de_RuleRevision(_),
-        entityUrl: smithyClient.expectString,
-        latestExecution: (_) => de_RuleExecution(_),
-        revisionUrl: smithyClient.expectString,
-        ruleName: smithyClient.expectString,
-    });
-};
-const de_RuleStateList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_RuleState(entry);
-    });
-    return retVal;
-};
-const de_StageConditionState = (output, context) => {
-    return smithyClient.take(output, {
-        conditionStates: (_) => de_ConditionStateList(_),
-        latestExecution: smithyClient._json,
-    });
-};
-const de_StageState = (output, context) => {
-    return smithyClient.take(output, {
-        actionStates: (_) => de_ActionStateList(_),
-        beforeEntryConditionState: (_) => de_StageConditionState(_),
-        inboundExecution: smithyClient._json,
-        inboundExecutions: smithyClient._json,
-        inboundTransitionState: (_) => de_TransitionState(_),
-        latestExecution: smithyClient._json,
-        onFailureConditionState: (_) => de_StageConditionState(_),
-        onSuccessConditionState: (_) => de_StageConditionState(_),
-        retryStageMetadata: smithyClient._json,
-        stageName: smithyClient.expectString,
-    });
-};
-const de_StageStateList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_StageState(entry);
-    });
-    return retVal;
-};
-const de_TransitionState = (output, context) => {
-    return smithyClient.take(output, {
-        disabledReason: smithyClient.expectString,
-        enabled: smithyClient.expectBoolean,
-        lastChangedAt: (_) => smithyClient.expectNonNull(smithyClient.parseEpochTimestamp(smithyClient.expectNumber(_))),
-        lastChangedBy: smithyClient.expectString,
-    });
-};
-const de_UpdatePipelineOutput = (output, context) => {
-    return smithyClient.take(output, {
-        pipeline: smithyClient._json,
-    });
-};
-const de_WebhookList = (output, context) => {
-    const retVal = (output || [])
-        .filter((e) => e != null)
-        .map((entry) => {
-        return de_ListWebhookItem(entry);
-    });
-    return retVal;
-};
-const deserializeMetadata = (output) => ({
-    httpStatusCode: output.statusCode,
-    requestId: output.headers["x-amzn-requestid"] ?? output.headers["x-amzn-request-id"] ?? output.headers["x-amz-request-id"],
-    extendedRequestId: output.headers["x-amz-id-2"],
-    cfId: output.headers["x-amz-cf-id"],
-});
-const throwDefaultError = smithyClient.withBaseException(CodePipelineServiceException);
-const buildHttpRpcRequest = async (context, headers, path, resolvedHostname, body) => {
-    const { hostname, protocol = "https", port, path: basePath } = await context.endpoint();
-    const contents = {
-        protocol,
-        hostname,
-        port,
-        method: "POST",
-        path: basePath.endsWith("/") ? basePath.slice(0, -1) + path : basePath + path,
-        headers,
-    };
-    if (body !== undefined) {
-        contents.body = body;
-    }
-    return new protocolHttp.HttpRequest(contents);
-};
-function sharedHeaders(operation) {
-    return {
-        "content-type": "application/x-amz-json-1.1",
-        "x-amz-target": `CodePipeline_20150709.${operation}`,
-    };
-}
+const _A = "Artifact";
+const _AACE = "ApprovalAlreadyCompletedException";
+const _AC = "ActionConfiguration";
+const _ACP = "ActionConfigurationProperty";
+const _ACPL = "ActionConfigurationPropertyList";
+const _ACc = "ActionContext";
+const _AD = "ActionDeclaration";
+const _ADL = "ArtifactDetailList";
+const _ADr = "ArtifactDetail";
+const _ADrt = "ArtifactDetails";
+const _AE = "ActionExecution";
+const _AED = "ActionExecutionDetail";
+const _AEDL = "ActionExecutionDetailList";
+const _AEF = "ActionExecutionFilter";
+const _AEI = "ActionExecutionInput";
+const _AENFE = "ActionExecutionNotFoundException";
+const _AEO = "ActionExecutionOutput";
+const _AER = "ActionExecutionResult";
+const _AIPR = "AllowedIPRange";
+const _AJ = "AcknowledgeJob";
+const _AJI = "AcknowledgeJobInput";
+const _AJO = "AcknowledgeJobOutput";
+const _AKI = "AccessKeyId";
+const _AL = "ArtifactLocation";
+const _ALr = "ArtifactList";
+const _ANFE = "ActionNotFoundException";
+const _AR = "ActionRevision";
+const _ARL = "ArtifactRevisionList";
+const _ARp = "ApprovalResult";
+const _ARr = "ArtifactRevision";
+const _AS = "ActionState";
+const _ASL = "ActionStateList";
+const _ASM = "ArtifactStoreMap";
+const _ASr = "ArtifactStore";
+const _AT = "ActionType";
+const _ATAD = "ActionTypeArtifactDetails";
+const _ATD = "ActionTypeDeclaration";
+const _ATE = "ActionTypeExecutor";
+const _ATI = "ActionTypeId";
+const _ATIc = "ActionTypeIdentifier";
+const _ATL = "ActionTypeList";
+const _ATNFE = "ActionTypeNotFoundException";
+const _ATP = "ActionTypePermissions";
+const _ATPJ = "AcknowledgeThirdPartyJob";
+const _ATPJI = "AcknowledgeThirdPartyJobInput";
+const _ATPJO = "AcknowledgeThirdPartyJobOutput";
+const _ATPc = "ActionTypeProperty";
+const _ATPct = "ActionTypeProperties";
+const _ATS = "ActionTypeSettings";
+const _ATU = "ActionTypeUrls";
+const _AWSSC = "AWSSessionCredentials";
+const _BD = "BlockerDeclaration";
+const _BEC = "BeforeEntryConditions";
+const _C = "Condition";
+const _CCAT = "CreateCustomActionType";
+const _CCATI = "CreateCustomActionTypeInput";
+const _CCATO = "CreateCustomActionTypeOutput";
+const _CE = "ConditionExecution";
+const _CEo = "ConflictException";
+const _CL = "ConditionList";
+const _CME = "ConcurrentModificationException";
+const _CNOE = "ConditionNotOverridableException";
+const _CP = "CreatePipeline";
+const _CPELEE = "ConcurrentPipelineExecutionsLimitExceededException";
+const _CPI = "CreatePipelineInput";
+const _CPO = "CreatePipelineOutput";
+const _CR = "CurrentRevision";
+const _CS = "ConditionState";
+const _CSL = "ConditionStateList";
+const _DAET = "DeployActionExecutionTarget";
+const _DAETL = "DeployActionExecutionTargetList";
+const _DCAT = "DeleteCustomActionType";
+const _DCATI = "DeleteCustomActionTypeInput";
+const _DP = "DeletePipeline";
+const _DPI = "DeletePipelineInput";
+const _DSRE = "DuplicatedStopRequestException";
+const _DST = "DisableStageTransition";
+const _DSTI = "DisableStageTransitionInput";
+const _DTE = "DeployTargetEvent";
+const _DTEC = "DeployTargetEventContext";
+const _DTEL = "DeployTargetEventList";
+const _DW = "DeleteWebhook";
+const _DWI = "DeleteWebhookInput";
+const _DWO = "DeleteWebhookOutput";
+const _DWWTP = "DeregisterWebhookWithThirdParty";
+const _DWWTPI = "DeregisterWebhookWithThirdPartyInput";
+const _DWWTPO = "DeregisterWebhookWithThirdPartyOutput";
+const _EC = "ExecutorConfiguration";
+const _ED = "ErrorDetails";
+const _EDx = "ExecutionDetails";
+const _EK = "EncryptionKey";
+const _EST = "EnableStageTransition";
+const _ESTI = "EnableStageTransitionInput";
+const _ET = "ExecutionTrigger";
+const _EV = "EnvironmentVariable";
+const _EVL = "EnvironmentVariableList";
+const _FC = "FailureConditions";
+const _FD = "FailureDetails";
+const _GAT = "GetActionType";
+const _GATI = "GetActionTypeInput";
+const _GATO = "GetActionTypeOutput";
+const _GBFC = "GitBranchFilterCriteria";
+const _GC = "GitConfiguration";
+const _GFPFC = "GitFilePathFilterCriteria";
+const _GJD = "GetJobDetails";
+const _GJDI = "GetJobDetailsInput";
+const _GJDO = "GetJobDetailsOutput";
+const _GP = "GetPipeline";
+const _GPE = "GetPipelineExecution";
+const _GPEI = "GetPipelineExecutionInput";
+const _GPEO = "GetPipelineExecutionOutput";
+const _GPF = "GitPushFilter";
+const _GPFL = "GitPushFilterList";
+const _GPI = "GetPipelineInput";
+const _GPO = "GetPipelineOutput";
+const _GPRF = "GitPullRequestFilter";
+const _GPRFL = "GitPullRequestFilterList";
+const _GPS = "GetPipelineState";
+const _GPSI = "GetPipelineStateInput";
+const _GPSO = "GetPipelineStateOutput";
+const _GTFC = "GitTagFilterCriteria";
+const _GTPJD = "GetThirdPartyJobDetails";
+const _GTPJDI = "GetThirdPartyJobDetailsInput";
+const _GTPJDO = "GetThirdPartyJobDetailsOutput";
+const _IA = "InputArtifact";
+const _IADE = "InvalidActionDeclarationException";
+const _IAE = "InvalidArnException";
+const _IAL = "InputArtifactList";
+const _IATE = "InvalidApprovalTokenException";
+const _IBDE = "InvalidBlockerDeclarationException";
+const _ICTE = "InvalidClientTokenException";
+const _IJE = "InvalidJobException";
+const _IJSE = "InvalidJobStateException";
+const _INE = "InvalidNonceException";
+const _INTE = "InvalidNextTokenException";
+const _ISDE = "InvalidStageDeclarationException";
+const _ISE = "InvalidStructureException";
+const _ITE = "InvalidTagsException";
+const _IWAPE = "InvalidWebhookAuthenticationParametersException";
+const _IWFPE = "InvalidWebhookFilterPatternException";
+const _J = "Job";
+const _JD = "JobData";
+const _JDo = "JobDetails";
+const _JL = "JobList";
+const _JNFE = "JobNotFoundException";
+const _JWEC = "JobWorkerExecutorConfiguration";
+const _LAE = "ListActionExecutions";
+const _LAEI = "ListActionExecutionsInput";
+const _LAEO = "ListActionExecutionsOutput";
+const _LAT = "ListActionTypes";
+const _LATI = "ListActionTypesInput";
+const _LATO = "ListActionTypesOutput";
+const _LDAET = "ListDeployActionExecutionTargets";
+const _LDAETI = "ListDeployActionExecutionTargetsInput";
+const _LDAETO = "ListDeployActionExecutionTargetsOutput";
+const _LEC = "LambdaExecutorConfiguration";
+const _LEE = "LimitExceededException";
+const _LIPEF = "LatestInPipelineExecutionFilter";
+const _LP = "ListPipelines";
+const _LPE = "ListPipelineExecutions";
+const _LPEI = "ListPipelineExecutionsInput";
+const _LPEO = "ListPipelineExecutionsOutput";
+const _LPI = "ListPipelinesInput";
+const _LPO = "ListPipelinesOutput";
+const _LRE = "ListRuleExecutions";
+const _LREI = "ListRuleExecutionsInput";
+const _LREO = "ListRuleExecutionsOutput";
+const _LRT = "ListRuleTypes";
+const _LRTI = "ListRuleTypesInput";
+const _LRTO = "ListRuleTypesOutput";
+const _LTFR = "ListTagsForResource";
+const _LTFRI = "ListTagsForResourceInput";
+const _LTFRO = "ListTagsForResourceOutput";
+const _LW = "ListWebhooks";
+const _LWI = "ListWebhookItem";
+const _LWIi = "ListWebhooksInput";
+const _LWO = "ListWebhooksOutput";
+const _MR = "MaxResults";
+const _NLPEE = "NotLatestPipelineExecutionException";
+const _NT = "NextToken";
+const _OA = "OutputArtifact";
+const _OAL = "OutputArtifactList";
+const _OSC = "OverrideStageCondition";
+const _OSCI = "OverrideStageConditionInput";
+const _OVSEE = "OutputVariablesSizeExceededException";
+const _PAR = "PutActionRevision";
+const _PARI = "PutActionRevisionInput";
+const _PARIu = "PutApprovalResultInput";
+const _PARO = "PutActionRevisionOutput";
+const _PAROu = "PutApprovalResultOutput";
+const _PARu = "PutApprovalResult";
+const _PC = "PipelineContext";
+const _PD = "PipelineDeclaration";
+const _PE = "PipelineExecution";
+const _PEF = "PipelineExecutionFilter";
+const _PENFE = "PipelineExecutionNotFoundException";
+const _PENSE = "PipelineExecutionNotStoppableException";
+const _PEOE = "PipelineExecutionOutdatedException";
+const _PES = "PipelineExecutionSummary";
+const _PESL = "PipelineExecutionSummaryList";
+const _PFJ = "PollForJobs";
+const _PFJI = "PollForJobsInput";
+const _PFJO = "PollForJobsOutput";
+const _PFTPJ = "PollForThirdPartyJobs";
+const _PFTPJI = "PollForThirdPartyJobsInput";
+const _PFTPJO = "PollForThirdPartyJobsOutput";
+const _PJFR = "PutJobFailureResult";
+const _PJFRI = "PutJobFailureResultInput";
+const _PJSR = "PutJobSuccessResult";
+const _PJSRI = "PutJobSuccessResultInput";
+const _PL = "PipelineList";
+const _PM = "PipelineMetadata";
+const _PNFE = "PipelineNotFoundException";
+const _PNIUE = "PipelineNameInUseException";
+const _PRM = "PipelineRollbackMetadata";
+const _PS = "PipelineSummary";
+const _PSDL = "PipelineStageDeclarationList";
+const _PTD = "PipelineTriggerDeclaration";
+const _PTDL = "PipelineTriggerDeclarationList";
+const _PTPJFR = "PutThirdPartyJobFailureResult";
+const _PTPJFRI = "PutThirdPartyJobFailureResultInput";
+const _PTPJSR = "PutThirdPartyJobSuccessResult";
+const _PTPJSRI = "PutThirdPartyJobSuccessResultInput";
+const _PV = "PipelineVariable";
+const _PVD = "PipelineVariableDeclaration";
+const _PVDL = "PipelineVariableDeclarationList";
+const _PVL = "PipelineVariableList";
+const _PVNFE = "PipelineVersionNotFoundException";
+const _PW = "PutWebhook";
+const _PWI = "PutWebhookInput";
+const _PWO = "PutWebhookOutput";
+const _RC = "RetryConfiguration";
+const _RCP = "RuleConfigurationProperty";
+const _RCPL = "RuleConfigurationPropertyList";
+const _RD = "RuleDeclaration";
+const _RDL = "RuleDeclarationList";
+const _RE = "RuleExecution";
+const _RED = "RuleExecutionDetail";
+const _REDL = "RuleExecutionDetailList";
+const _REF = "RuleExecutionFilter";
+const _REI = "RuleExecutionInput";
+const _REO = "RuleExecutionOutput";
+const _RER = "RuleExecutionResult";
+const _RFE = "RequestFailedException";
+const _RNFE = "ResourceNotFoundException";
+const _RPV = "ResolvedPipelineVariable";
+const _RPVL = "ResolvedPipelineVariableList";
+const _RR = "RuleRevision";
+const _RS = "RuleState";
+const _RSE = "RetryStageExecution";
+const _RSEI = "RetryStageExecutionInput";
+const _RSEO = "RetryStageExecutionOutput";
+const _RSI = "RollbackStageInput";
+const _RSL = "RuleStateList";
+const _RSM = "RetryStageMetadata";
+const _RSO = "RollbackStageOutput";
+const _RSo = "RollbackStage";
+const _RT = "RuleType";
+const _RTI = "RuleTypeId";
+const _RTL = "RuleTypeList";
+const _RTS = "RuleTypeSettings";
+const _RWWTP = "RegisterWebhookWithThirdParty";
+const _RWWTPI = "RegisterWebhookWithThirdPartyInput";
+const _RWWTPO = "RegisterWebhookWithThirdPartyOutput";
+const _SADL = "StageActionDeclarationList";
+const _SAK = "SecretAccessKey";
+const _SAL = "S3ArtifactLocation";
+const _SBDL = "StageBlockerDeclarationList";
+const _SC = "StageContext";
+const _SCE = "StageConditionsExecution";
+const _SCS = "StageConditionState";
+const _SCu = "SuccessConditions";
+const _SD = "StageDeclaration";
+const _SE = "StageExecution";
+const _SEL = "StageExecutionList";
+const _SET = "StopExecutionTrigger";
+const _SISF = "SucceededInStageFilter";
+const _SL = "S3Location";
+const _SNFE = "StageNotFoundException";
+const _SNRE = "StageNotRetryableException";
+const _SPE = "StartPipelineExecution";
+const _SPEI = "StartPipelineExecutionInput";
+const _SPEIt = "StopPipelineExecutionInput";
+const _SPEO = "StartPipelineExecutionOutput";
+const _SPEOt = "StopPipelineExecutionOutput";
+const _SPEt = "StopPipelineExecution";
+const _SR = "SourceRevision";
+const _SRL = "SourceRevisionList";
+const _SRO = "SourceRevisionOverride";
+const _SROL = "SourceRevisionOverrideList";
+const _SS = "StageState";
+const _SSL = "StageStateList";
+const _ST = "SessionToken";
+const _STe = "SecretToken";
+const _T = "Tag";
+const _TF = "TargetFilter";
+const _TFL = "TargetFilterList";
+const _TL = "TagList";
+const _TMTE = "TooManyTagsException";
+const _TPJ = "ThirdPartyJob";
+const _TPJD = "ThirdPartyJobData";
+const _TPJDh = "ThirdPartyJobDetails";
+const _TPJL = "ThirdPartyJobList";
+const _TR = "TagResource";
+const _TRI = "TagResourceInput";
+const _TRO = "TagResourceOutput";
+const _TS = "TransitionState";
+const _UAT = "UpdateActionType";
+const _UATI = "UpdateActionTypeInput";
+const _UP = "UpdatePipeline";
+const _UPI = "UpdatePipelineInput";
+const _UPO = "UpdatePipelineOutput";
+const _UR = "UntagResource";
+const _URI = "UntagResourceInput";
+const _URO = "UntagResourceOutput";
+const _UTRSE = "UnableToRollbackStageException";
+const _VE = "ValidationException";
+const _WAC = "WebhookAuthConfiguration";
+const _WD = "WebhookDefinition";
+const _WF = "WebhookFilters";
+const _WFR = "WebhookFilterRule";
+const _WL = "WebhookList";
+const _WNFE = "WebhookNotFoundException";
+const _a = "arn";
+const _aA = "allowedAccounts";
+const _aAp = "approvedAt";
+const _aC = "actionConfiguration";
+const _aCP = "actionConfigurationProperties";
+const _aCr = "artifactCredentials";
+const _aCu = "authenticationConfiguration";
+const _aED = "actionExecutionDetails";
+const _aEI = "actionExecutionId";
+const _aI = "accountId";
+const _aKI = "accessKeyId";
+const _aN = "actionName";
+const _aOF = "actionOwnerFilter";
+const _aR = "artifactRevisions";
+const _aRc = "actionRevision";
+const _aS = "artifactStore";
+const _aSRA = "autoStageRetryAttempt";
+const _aSc = "actionStates";
+const _aSr = "artifactStores";
+const _aT = "actionType";
+const _aTI = "actionTypeId";
+const _aTc = "actionTypes";
+const _ab = "abandon";
+const _ac = "action";
+const _act = "actions";
+const _au = "authentication";
+const _b = "branches";
+const _bE = "beforeEntry";
+const _bECS = "beforeEntryConditionState";
+const _bN = "bucketName";
+const _bl = "blockers";
+const _bu = "bucket";
+const _c = "configuration";
+const _cI = "changeIdentifier";
+const _cIl = "clientId";
+const _cP = "configurationProperties";
+const _cR = "currentRevision";
+const _cRT = "clientRequestToken";
+const _cS = "conditionStates";
+const _cT = "clientToken";
+const _cTo = "continuationToken";
+const _cTon = "conditionType";
+const _cU = "configurationUrl";
+const _ca = "category";
+const _cl = "client";
+const _co = "commands";
+const _cod = "code";
+const _con = "conditions";
+const _cont = "context";
+const _cr = "created";
+const _d = "description";
+const _dR = "disabledReason";
+const _dV = "defaultValue";
+const _da = "data";
+const _de = "definition";
+const _e = "error";
+const _eC = "errorCode";
+const _eD = "errorDetails";
+const _eDx = "executionDetails";
+const _eEI = "externalExecutionId";
+const _eES = "externalExecutionSummary";
+const _eEU = "externalExecutionUrl";
+const _eK = "encryptionKey";
+const _eM = "errorMessage";
+const _eMx = "executionMode";
+const _eR = "executionResult";
+const _eT = "endTime";
+const _eTx = "executionType";
+const _eU = "entityUrl";
+const _eUT = "entityUrlTemplate";
+const _eUTx = "executionUrlTemplate";
+const _eV = "environmentVariables";
+const _en = "enabled";
+const _ev = "events";
+const _ex = "executor";
+const _exc = "excludes";
+const _f = "filter";
+const _fD = "failureDetails";
+const _fP = "filePaths";
+const _fi = "filters";
+const _fil = "files";
+const _gC = "gitConfiguration";
+const _hE = "httpError";
+const _i = "input";
+const _iA = "inputArtifacts";
+const _iAD = "inputArtifactDetails";
+const _iE = "inboundExecution";
+const _iEn = "inboundExecutions";
+const _iTS = "inboundTransitionState";
+const _id = "id";
+const _in = "includes";
+const _j = "jobs";
+const _jD = "jobDetails";
+const _jI = "jobId";
+const _jP = "jsonPath";
+const _jT = "jobTimeout";
+const _jWEC = "jobWorkerExecutorConfiguration";
+const _k = "key";
+const _l = "location";
+const _lCA = "lastChangedAt";
+const _lCB = "lastChangedBy";
+const _lE = "latestExecution";
+const _lEC = "lambdaExecutorConfiguration";
+const _lFA = "lambdaFunctionArn";
+const _lIPE = "latestInPipelineExecution";
+const _lRT = "latestRetryTrigger";
+const _lSARN = "logStreamARN";
+const _lSC = "lastStatusChange";
+const _lT = "lastTriggered";
+const _lUB = "lastUpdatedBy";
+const _lUT = "lastUpdateTime";
+const _m = "message";
+const _mBS = "maxBatchSize";
+const _mC = "minimumCount";
+const _mCa = "maximumCount";
+const _mE = "matchEquals";
+const _mR = "maxResults";
+const _mSRA = "manualStageRetryAttempt";
+const _me = "metadata";
+const _n = "nonce";
+const _nE = "noEcho";
+const _nR = "newRevision";
+const _nT = "nextToken";
+const _na = "name";
+const _nam = "namespace";
+const _o = "output";
+const _oA = "outputArtifacts";
+const _oAD = "outputArtifactDetails";
+const _oF = "onFailure";
+const _oFCS = "onFailureConditionState";
+const _oK = "objectKey";
+const _oS = "onSuccess";
+const _oSCS = "onSuccessConditionState";
+const _oV = "outputVariables";
+const _op = "optional";
+const _ow = "owner";
+const _p = "permissions";
+const _pA = "pollingAccounts";
+const _pAi = "pipelineArn";
+const _pC = "percentComplete";
+const _pCi = "pipelineContext";
+const _pDA = "pollingDisabledAt";
+const _pE = "pipelineExecution";
+const _pEI = "pipelineExecutionId";
+const _pES = "pipelineExecutionSummaries";
+const _pN = "pipelineName";
+const _pR = "pullRequest";
+const _pSP = "pollingServicePrincipals";
+const _pST = "policyStatementsTemplate";
+const _pT = "pipelineType";
+const _pTr = "providerType";
+const _pV = "pipelineVersion";
+const _pi = "pipeline";
+const _pip = "pipelines";
+const _pr = "properties";
+const _pro = "provider";
+const _pu = "push";
+const _q = "queryable";
+const _qP = "queryParam";
+const _r = "required";
+const _rA = "roleArn";
+const _rAe = "resourceArn";
+const _rC = "resolvedConfiguration";
+const _rCI = "revisionChangeId";
+const _rCIe = "revisionChangeIdentifier";
+const _rCP = "ruleConfigurationProperties";
+const _rCe = "retryConfiguration";
+const _rED = "ruleExecutionDetails";
+const _rEI = "ruleExecutionId";
+const _rF = "regionFilter";
+const _rI = "revisionId";
+const _rM = "rollbackMetadata";
+const _rMe = "retryMode";
+const _rN = "ruleName";
+const _rO = "runOrder";
+const _rOF = "ruleOwnerFilter";
+const _rS = "revisionSummary";
+const _rSM = "retryStageMetadata";
+const _rSu = "ruleStates";
+const _rT = "ruleTypes";
+const _rTI = "ruleTypeId";
+const _rTPEI = "rollbackTargetPipelineExecutionId";
+const _rTe = "revisionType";
+const _rU = "revisionUrl";
+const _rUT = "revisionUrlTemplate";
+const _rV = "resolvedValue";
+const _rVe = "revisionValue";
+const _re = "region";
+const _rea = "reason";
+const _res = "result";
+const _rev = "revision";
+const _ru = "rules";
+const _s = "status";
+const _sAK = "secretAccessKey";
+const _sAN = "sourceActionName";
+const _sCI = "ssmCommandId";
+const _sIS = "succeededInStage";
+const _sL = "s3Location";
+const _sN = "stageName";
+const _sR = "sourceRevisions";
+const _sS = "stageStates";
+const _sSt = "statusSummary";
+const _sT = "startTime";
+const _sTR = "startTimeRange";
+const _sTe = "sessionToken";
+const _sTt = "stopTrigger";
+const _se = "secret";
+const _set = "settings";
+const _sl = "s3location";
+const _sm = "smithy.ts.sdk.synthetic.com.amazonaws.codepipeline";
+const _st = "stage";
+const _sta = "stages";
+const _su = "summary";
+const _t = "type";
+const _tA = "targetAction";
+const _tD = "triggerDetail";
+const _tI = "targetId";
+const _tIM = "timeoutInMinutes";
+const _tK = "tagKeys";
+const _tP = "targetPipeline";
+const _tPCU = "thirdPartyConfigurationUrl";
+const _tPEI = "targetPipelineExecutionId";
+const _tT = "targetType";
+const _tTr = "transitionType";
+const _tTri = "triggerType";
+const _ta = "tags";
+const _tar = "targets";
+const _to = "token";
+const _tr = "triggers";
+const _tri = "trigger";
+const _u = "urls";
+const _uB = "updatedBy";
+const _up = "updated";
+const _ur = "url";
+const _v = "version";
+const _va = "value";
+const _val = "values";
+const _var = "variables";
+const _w = "webhooks";
+const _wN = "webhookName";
+const _we = "webhook";
+const n0 = "com.amazonaws.codepipeline";
+var AccessKeyId = [0, n0, _AKI, 8, 0];
+var SecretAccessKey = [0, n0, _SAK, 8, 0];
+var SessionToken = [0, n0, _ST, 8, 0];
+var AcknowledgeJobInput = [3, n0, _AJI, 0, [_jI, _n], [0, 0]];
+var AcknowledgeJobOutput = [3, n0, _AJO, 0, [_s], [0]];
+var AcknowledgeThirdPartyJobInput = [3, n0, _ATPJI, 0, [_jI, _n, _cT], [0, 0, 0]];
+var AcknowledgeThirdPartyJobOutput = [3, n0, _ATPJO, 0, [_s], [0]];
+var ActionConfiguration = [3, n0, _AC, 0, [_c], [128 | 0]];
+var ActionConfigurationProperty = [
+    3,
+    n0,
+    _ACP,
+    0,
+    [_na, _r, _k, _se, _q, _d, _t],
+    [0, 2, 2, 2, 2, 0, 0],
+];
+var ActionContext = [3, n0, _ACc, 0, [_na, _aEI], [0, 0]];
+var ActionDeclaration = [
+    3,
+    n0,
+    _AD,
+    0,
+    [_na, _aTI, _rO, _c, _co, _oA, _iA, _oV, _rA, _re, _nam, _tIM, _eV],
+    [
+        0,
+        () => ActionTypeId,
+        1,
+        128 | 0,
+        64 | 0,
+        () => OutputArtifactList,
+        () => InputArtifactList,
+        64 | 0,
+        0,
+        0,
+        0,
+        1,
+        () => EnvironmentVariableList,
+    ],
+];
+var ActionExecution = [
+    3,
+    n0,
+    _AE,
+    0,
+    [_aEI, _s, _su, _lSC, _to, _lUB, _eEI, _eEU, _pC, _eD, _lSARN],
+    [0, 0, 0, 4, 0, 0, 0, 0, 1, () => ErrorDetails, 0],
+];
+var ActionExecutionDetail = [
+    3,
+    n0,
+    _AED,
+    0,
+    [_pEI, _aEI, _pV, _sN, _aN, _sT, _lUT, _uB, _s, _i, _o],
+    [0, 0, 1, 0, 0, 4, 4, 0, 0, () => ActionExecutionInput, () => ActionExecutionOutput],
+];
+var ActionExecutionFilter = [
+    3,
+    n0,
+    _AEF,
+    0,
+    [_pEI, _lIPE],
+    [0, () => LatestInPipelineExecutionFilter],
+];
+var ActionExecutionInput = [
+    3,
+    n0,
+    _AEI,
+    0,
+    [_aTI, _c, _rC, _rA, _re, _iA, _nam],
+    [() => ActionTypeId, 128 | 0, 128 | 0, 0, 0, () => ArtifactDetailList, 0],
+];
+var ActionExecutionNotFoundException = [
+    -3,
+    n0,
+    _AENFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ActionExecutionNotFoundException, ActionExecutionNotFoundException$1);
+var ActionExecutionOutput = [
+    3,
+    n0,
+    _AEO,
+    0,
+    [_oA, _eR, _oV],
+    [() => ArtifactDetailList, () => ActionExecutionResult, 128 | 0],
+];
+var ActionExecutionResult = [
+    3,
+    n0,
+    _AER,
+    0,
+    [_eEI, _eES, _eEU, _eD, _lSARN],
+    [0, 0, 0, () => ErrorDetails, 0],
+];
+var ActionNotFoundException = [
+    -3,
+    n0,
+    _ANFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ActionNotFoundException, ActionNotFoundException$1);
+var ActionRevision = [3, n0, _AR, 0, [_rI, _rCI, _cr], [0, 0, 4]];
+var ActionState = [
+    3,
+    n0,
+    _AS,
+    0,
+    [_aN, _cR, _lE, _eU, _rU],
+    [0, () => ActionRevision, () => ActionExecution, 0, 0],
+];
+var ActionType = [
+    3,
+    n0,
+    _AT,
+    0,
+    [_id, _set, _aCP, _iAD, _oAD],
+    [
+        () => ActionTypeId,
+        () => ActionTypeSettings,
+        () => ActionConfigurationPropertyList,
+        () => ArtifactDetails,
+        () => ArtifactDetails,
+    ],
+];
+var ActionTypeArtifactDetails = [3, n0, _ATAD, 0, [_mC, _mCa], [1, 1]];
+var ActionTypeDeclaration = [
+    3,
+    n0,
+    _ATD,
+    0,
+    [_d, _ex, _id, _iAD, _oAD, _p, _pr, _u],
+    [
+        0,
+        () => ActionTypeExecutor,
+        () => ActionTypeIdentifier,
+        () => ActionTypeArtifactDetails,
+        () => ActionTypeArtifactDetails,
+        () => ActionTypePermissions,
+        () => ActionTypeProperties,
+        () => ActionTypeUrls,
+    ],
+];
+var ActionTypeExecutor = [
+    3,
+    n0,
+    _ATE,
+    0,
+    [_c, _t, _pST, _jT],
+    [() => ExecutorConfiguration, 0, 0, 1],
+];
+var ActionTypeId = [3, n0, _ATI, 0, [_ca, _ow, _pro, _v], [0, 0, 0, 0]];
+var ActionTypeIdentifier = [3, n0, _ATIc, 0, [_ca, _ow, _pro, _v], [0, 0, 0, 0]];
+var ActionTypeNotFoundException = [
+    -3,
+    n0,
+    _ATNFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ActionTypeNotFoundException, ActionTypeNotFoundException$1);
+var ActionTypePermissions = [3, n0, _ATP, 0, [_aA], [64 | 0]];
+var ActionTypeProperty = [
+    3,
+    n0,
+    _ATPc,
+    0,
+    [_na, _op, _k, _nE, _q, _d],
+    [0, 2, 2, 2, 2, 0],
+];
+var ActionTypeSettings = [3, n0, _ATS, 0, [_tPCU, _eUT, _eUTx, _rUT], [0, 0, 0, 0]];
+var ActionTypeUrls = [3, n0, _ATU, 0, [_cU, _eUT, _eUTx, _rUT], [0, 0, 0, 0]];
+var ApprovalAlreadyCompletedException = [
+    -3,
+    n0,
+    _AACE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ApprovalAlreadyCompletedException, ApprovalAlreadyCompletedException$1);
+var ApprovalResult = [3, n0, _ARp, 0, [_su, _s], [0, 0]];
+var Artifact = [3, n0, _A, 0, [_na, _rev, _l], [0, 0, () => ArtifactLocation]];
+var ArtifactDetail = [3, n0, _ADr, 0, [_na, _sl], [0, () => S3Location]];
+var ArtifactDetails = [3, n0, _ADrt, 0, [_mC, _mCa], [1, 1]];
+var ArtifactLocation = [3, n0, _AL, 0, [_t, _sL], [0, () => S3ArtifactLocation]];
+var ArtifactRevision = [
+    3,
+    n0,
+    _ARr,
+    0,
+    [_na, _rI, _rCIe, _rS, _cr, _rU],
+    [0, 0, 0, 0, 4, 0],
+];
+var ArtifactStore = [3, n0, _ASr, 0, [_t, _l, _eK], [0, 0, () => EncryptionKey]];
+var AWSSessionCredentials = [
+    3,
+    n0,
+    _AWSSC,
+    8,
+    [_aKI, _sAK, _sTe],
+    [
+        [() => AccessKeyId, 0],
+        [() => SecretAccessKey, 0],
+        [() => SessionToken, 0],
+    ],
+];
+var BeforeEntryConditions = [3, n0, _BEC, 0, [_con], [() => ConditionList]];
+var BlockerDeclaration = [3, n0, _BD, 0, [_na, _t], [0, 0]];
+var ConcurrentModificationException = [
+    -3,
+    n0,
+    _CME,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ConcurrentModificationException, ConcurrentModificationException$1);
+var ConcurrentPipelineExecutionsLimitExceededException = [
+    -3,
+    n0,
+    _CPELEE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ConcurrentPipelineExecutionsLimitExceededException, ConcurrentPipelineExecutionsLimitExceededException$1);
+var Condition = [3, n0, _C, 0, [_res, _ru], [0, () => RuleDeclarationList]];
+var ConditionExecution = [3, n0, _CE, 0, [_s, _su, _lSC], [0, 0, 4]];
+var ConditionNotOverridableException = [
+    -3,
+    n0,
+    _CNOE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ConditionNotOverridableException, ConditionNotOverridableException$1);
+var ConditionState = [
+    3,
+    n0,
+    _CS,
+    0,
+    [_lE, _rSu],
+    [() => ConditionExecution, () => RuleStateList],
+];
+var ConflictException = [
+    -3,
+    n0,
+    _CEo,
+    {
+        [_e]: _cl,
+        [_hE]: 409,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ConflictException, ConflictException$1);
+var CreateCustomActionTypeInput = [
+    3,
+    n0,
+    _CCATI,
+    0,
+    [_ca, _pro, _v, _set, _cP, _iAD, _oAD, _ta],
+    [
+        0,
+        0,
+        0,
+        () => ActionTypeSettings,
+        () => ActionConfigurationPropertyList,
+        () => ArtifactDetails,
+        () => ArtifactDetails,
+        () => TagList,
+    ],
+];
+var CreateCustomActionTypeOutput = [
+    3,
+    n0,
+    _CCATO,
+    0,
+    [_aT, _ta],
+    [() => ActionType, () => TagList],
+];
+var CreatePipelineInput = [
+    3,
+    n0,
+    _CPI,
+    0,
+    [_pi, _ta],
+    [() => PipelineDeclaration, () => TagList],
+];
+var CreatePipelineOutput = [
+    3,
+    n0,
+    _CPO,
+    0,
+    [_pi, _ta],
+    [() => PipelineDeclaration, () => TagList],
+];
+var CurrentRevision = [3, n0, _CR, 0, [_rev, _cI, _cr, _rS], [0, 0, 4, 0]];
+var DeleteCustomActionTypeInput = [3, n0, _DCATI, 0, [_ca, _pro, _v], [0, 0, 0]];
+var DeletePipelineInput = [3, n0, _DPI, 0, [_na], [0]];
+var DeleteWebhookInput = [3, n0, _DWI, 0, [_na], [0]];
+var DeleteWebhookOutput = [3, n0, _DWO, 0, [], []];
+var DeployActionExecutionTarget = [
+    3,
+    n0,
+    _DAET,
+    0,
+    [_tI, _tT, _s, _sT, _eT, _ev],
+    [0, 0, 0, 4, 4, () => DeployTargetEventList],
+];
+var DeployTargetEvent = [
+    3,
+    n0,
+    _DTE,
+    0,
+    [_na, _s, _sT, _eT, _cont],
+    [0, 0, 4, 4, () => DeployTargetEventContext],
+];
+var DeployTargetEventContext = [3, n0, _DTEC, 0, [_sCI, _m], [0, 0]];
+var DeregisterWebhookWithThirdPartyInput = [3, n0, _DWWTPI, 0, [_wN], [0]];
+var DeregisterWebhookWithThirdPartyOutput = [3, n0, _DWWTPO, 0, [], []];
+var DisableStageTransitionInput = [3, n0, _DSTI, 0, [_pN, _sN, _tTr, _rea], [0, 0, 0, 0]];
+var DuplicatedStopRequestException = [
+    -3,
+    n0,
+    _DSRE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(DuplicatedStopRequestException, DuplicatedStopRequestException$1);
+var EnableStageTransitionInput = [3, n0, _ESTI, 0, [_pN, _sN, _tTr], [0, 0, 0]];
+var EncryptionKey = [3, n0, _EK, 0, [_id, _t], [0, 0]];
+var EnvironmentVariable = [3, n0, _EV, 0, [_na, _va, _t], [0, 0, 0]];
+var ErrorDetails = [3, n0, _ED, 0, [_cod, _m], [0, 0]];
+var ExecutionDetails = [3, n0, _EDx, 0, [_su, _eEI, _pC], [0, 0, 1]];
+var ExecutionTrigger = [3, n0, _ET, 0, [_tTri, _tD], [0, 0]];
+var ExecutorConfiguration = [
+    3,
+    n0,
+    _EC,
+    0,
+    [_lEC, _jWEC],
+    [() => LambdaExecutorConfiguration, () => JobWorkerExecutorConfiguration],
+];
+var FailureConditions = [
+    3,
+    n0,
+    _FC,
+    0,
+    [_res, _rCe, _con],
+    [0, () => RetryConfiguration, () => ConditionList],
+];
+var FailureDetails = [3, n0, _FD, 0, [_t, _m, _eEI], [0, 0, 0]];
+var GetActionTypeInput = [3, n0, _GATI, 0, [_ca, _ow, _pro, _v], [0, 0, 0, 0]];
+var GetActionTypeOutput = [3, n0, _GATO, 0, [_aT], [() => ActionTypeDeclaration]];
+var GetJobDetailsInput = [3, n0, _GJDI, 0, [_jI], [0]];
+var GetJobDetailsOutput = [3, n0, _GJDO, 0, [_jD], [[() => JobDetails, 0]]];
+var GetPipelineExecutionInput = [3, n0, _GPEI, 0, [_pN, _pEI], [0, 0]];
+var GetPipelineExecutionOutput = [3, n0, _GPEO, 0, [_pE], [() => PipelineExecution]];
+var GetPipelineInput = [3, n0, _GPI, 0, [_na, _v], [0, 1]];
+var GetPipelineOutput = [
+    3,
+    n0,
+    _GPO,
+    0,
+    [_pi, _me],
+    [() => PipelineDeclaration, () => PipelineMetadata],
+];
+var GetPipelineStateInput = [3, n0, _GPSI, 0, [_na], [0]];
+var GetPipelineStateOutput = [
+    3,
+    n0,
+    _GPSO,
+    0,
+    [_pN, _pV, _sS, _cr, _up],
+    [0, 1, () => StageStateList, 4, 4],
+];
+var GetThirdPartyJobDetailsInput = [3, n0, _GTPJDI, 0, [_jI, _cT], [0, 0]];
+var GetThirdPartyJobDetailsOutput = [
+    3,
+    n0,
+    _GTPJDO,
+    0,
+    [_jD],
+    [[() => ThirdPartyJobDetails, 0]],
+];
+var GitBranchFilterCriteria = [3, n0, _GBFC, 0, [_in, _exc], [64 | 0, 64 | 0]];
+var GitConfiguration = [
+    3,
+    n0,
+    _GC,
+    0,
+    [_sAN, _pu, _pR],
+    [0, () => GitPushFilterList, () => GitPullRequestFilterList],
+];
+var GitFilePathFilterCriteria = [3, n0, _GFPFC, 0, [_in, _exc], [64 | 0, 64 | 0]];
+var GitPullRequestFilter = [
+    3,
+    n0,
+    _GPRF,
+    0,
+    [_ev, _b, _fP],
+    [64 | 0, () => GitBranchFilterCriteria, () => GitFilePathFilterCriteria],
+];
+var GitPushFilter = [
+    3,
+    n0,
+    _GPF,
+    0,
+    [_ta, _b, _fP],
+    [() => GitTagFilterCriteria, () => GitBranchFilterCriteria, () => GitFilePathFilterCriteria],
+];
+var GitTagFilterCriteria = [3, n0, _GTFC, 0, [_in, _exc], [64 | 0, 64 | 0]];
+var InputArtifact = [3, n0, _IA, 0, [_na], [0]];
+var InvalidActionDeclarationException = [
+    -3,
+    n0,
+    _IADE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidActionDeclarationException, InvalidActionDeclarationException$1);
+var InvalidApprovalTokenException = [
+    -3,
+    n0,
+    _IATE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidApprovalTokenException, InvalidApprovalTokenException$1);
+var InvalidArnException = [
+    -3,
+    n0,
+    _IAE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidArnException, InvalidArnException$1);
+var InvalidBlockerDeclarationException = [
+    -3,
+    n0,
+    _IBDE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidBlockerDeclarationException, InvalidBlockerDeclarationException$1);
+var InvalidClientTokenException = [
+    -3,
+    n0,
+    _ICTE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidClientTokenException, InvalidClientTokenException$1);
+var InvalidJobException = [
+    -3,
+    n0,
+    _IJE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidJobException, InvalidJobException$1);
+var InvalidJobStateException = [
+    -3,
+    n0,
+    _IJSE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidJobStateException, InvalidJobStateException$1);
+var InvalidNextTokenException = [
+    -3,
+    n0,
+    _INTE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidNextTokenException, InvalidNextTokenException$1);
+var InvalidNonceException = [
+    -3,
+    n0,
+    _INE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidNonceException, InvalidNonceException$1);
+var InvalidStageDeclarationException = [
+    -3,
+    n0,
+    _ISDE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidStageDeclarationException, InvalidStageDeclarationException$1);
+var InvalidStructureException = [
+    -3,
+    n0,
+    _ISE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidStructureException, InvalidStructureException$1);
+var InvalidTagsException = [
+    -3,
+    n0,
+    _ITE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidTagsException, InvalidTagsException$1);
+var InvalidWebhookAuthenticationParametersException = [
+    -3,
+    n0,
+    _IWAPE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidWebhookAuthenticationParametersException, InvalidWebhookAuthenticationParametersException$1);
+var InvalidWebhookFilterPatternException = [
+    -3,
+    n0,
+    _IWFPE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(InvalidWebhookFilterPatternException, InvalidWebhookFilterPatternException$1);
+var Job = [3, n0, _J, 0, [_id, _da, _n, _aI], [0, [() => JobData, 0], 0, 0]];
+var JobData = [
+    3,
+    n0,
+    _JD,
+    0,
+    [_aTI, _aC, _pCi, _iA, _oA, _aCr, _cTo, _eK],
+    [
+        () => ActionTypeId,
+        () => ActionConfiguration,
+        () => PipelineContext,
+        () => ArtifactList,
+        () => ArtifactList,
+        [() => AWSSessionCredentials, 0],
+        0,
+        () => EncryptionKey,
+    ],
+];
+var JobDetails = [3, n0, _JDo, 0, [_id, _da, _aI], [0, [() => JobData, 0], 0]];
+var JobNotFoundException = [
+    -3,
+    n0,
+    _JNFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(JobNotFoundException, JobNotFoundException$1);
+var JobWorkerExecutorConfiguration = [3, n0, _JWEC, 0, [_pA, _pSP], [64 | 0, 64 | 0]];
+var LambdaExecutorConfiguration = [3, n0, _LEC, 0, [_lFA], [0]];
+var LatestInPipelineExecutionFilter = [3, n0, _LIPEF, 0, [_pEI, _sTR], [0, 0]];
+var LimitExceededException = [
+    -3,
+    n0,
+    _LEE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(LimitExceededException, LimitExceededException$1);
+var ListActionExecutionsInput = [
+    3,
+    n0,
+    _LAEI,
+    0,
+    [_pN, _f, _mR, _nT],
+    [0, () => ActionExecutionFilter, 1, 0],
+];
+var ListActionExecutionsOutput = [
+    3,
+    n0,
+    _LAEO,
+    0,
+    [_aED, _nT],
+    [() => ActionExecutionDetailList, 0],
+];
+var ListActionTypesInput = [3, n0, _LATI, 0, [_aOF, _nT, _rF], [0, 0, 0]];
+var ListActionTypesOutput = [3, n0, _LATO, 0, [_aTc, _nT], [() => ActionTypeList, 0]];
+var ListDeployActionExecutionTargetsInput = [
+    3,
+    n0,
+    _LDAETI,
+    0,
+    [_pN, _aEI, _fi, _mR, _nT],
+    [0, 0, () => TargetFilterList, 1, 0],
+];
+var ListDeployActionExecutionTargetsOutput = [
+    3,
+    n0,
+    _LDAETO,
+    0,
+    [_tar, _nT],
+    [() => DeployActionExecutionTargetList, 0],
+];
+var ListPipelineExecutionsInput = [
+    3,
+    n0,
+    _LPEI,
+    0,
+    [_pN, _mR, _f, _nT],
+    [0, 1, () => PipelineExecutionFilter, 0],
+];
+var ListPipelineExecutionsOutput = [
+    3,
+    n0,
+    _LPEO,
+    0,
+    [_pES, _nT],
+    [() => PipelineExecutionSummaryList, 0],
+];
+var ListPipelinesInput = [3, n0, _LPI, 0, [_nT, _mR], [0, 1]];
+var ListPipelinesOutput = [3, n0, _LPO, 0, [_pip, _nT], [() => PipelineList, 0]];
+var ListRuleExecutionsInput = [
+    3,
+    n0,
+    _LREI,
+    0,
+    [_pN, _f, _mR, _nT],
+    [0, () => RuleExecutionFilter, 1, 0],
+];
+var ListRuleExecutionsOutput = [
+    3,
+    n0,
+    _LREO,
+    0,
+    [_rED, _nT],
+    [() => RuleExecutionDetailList, 0],
+];
+var ListRuleTypesInput = [3, n0, _LRTI, 0, [_rOF, _rF], [0, 0]];
+var ListRuleTypesOutput = [3, n0, _LRTO, 0, [_rT], [() => RuleTypeList]];
+var ListTagsForResourceInput = [3, n0, _LTFRI, 0, [_rAe, _nT, _mR], [0, 0, 1]];
+var ListTagsForResourceOutput = [3, n0, _LTFRO, 0, [_ta, _nT], [() => TagList, 0]];
+var ListWebhookItem = [
+    3,
+    n0,
+    _LWI,
+    0,
+    [_de, _ur, _eM, _eC, _lT, _a, _ta],
+    [() => WebhookDefinition, 0, 0, 0, 4, 0, () => TagList],
+];
+var ListWebhooksInput = [3, n0, _LWIi, 0, [_NT, _MR], [0, 1]];
+var ListWebhooksOutput = [3, n0, _LWO, 0, [_w, _NT], [() => WebhookList, 0]];
+var NotLatestPipelineExecutionException = [
+    -3,
+    n0,
+    _NLPEE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(NotLatestPipelineExecutionException, NotLatestPipelineExecutionException$1);
+var OutputArtifact = [3, n0, _OA, 0, [_na, _fil], [0, 64 | 0]];
+var OutputVariablesSizeExceededException = [
+    -3,
+    n0,
+    _OVSEE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(OutputVariablesSizeExceededException, OutputVariablesSizeExceededException$1);
+var OverrideStageConditionInput = [
+    3,
+    n0,
+    _OSCI,
+    0,
+    [_pN, _sN, _pEI, _cTon],
+    [0, 0, 0, 0],
+];
+var PipelineContext = [
+    3,
+    n0,
+    _PC,
+    0,
+    [_pN, _st, _ac, _pAi, _pEI],
+    [0, () => StageContext, () => ActionContext, 0, 0],
+];
+var PipelineDeclaration = [
+    3,
+    n0,
+    _PD,
+    0,
+    [_na, _rA, _aS, _aSr, _sta, _v, _eMx, _pT, _var, _tr],
+    [
+        0,
+        0,
+        () => ArtifactStore,
+        () => ArtifactStoreMap,
+        () => PipelineStageDeclarationList,
+        1,
+        0,
+        0,
+        () => PipelineVariableDeclarationList,
+        () => PipelineTriggerDeclarationList,
+    ],
+];
+var PipelineExecution = [
+    3,
+    n0,
+    _PE,
+    0,
+    [_pN, _pV, _pEI, _s, _sSt, _aR, _var, _tri, _eMx, _eTx, _rM],
+    [
+        0,
+        1,
+        0,
+        0,
+        0,
+        () => ArtifactRevisionList,
+        () => ResolvedPipelineVariableList,
+        () => ExecutionTrigger,
+        0,
+        0,
+        () => PipelineRollbackMetadata,
+    ],
+];
+var PipelineExecutionFilter = [3, n0, _PEF, 0, [_sIS], [() => SucceededInStageFilter]];
+var PipelineExecutionNotFoundException = [
+    -3,
+    n0,
+    _PENFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(PipelineExecutionNotFoundException, PipelineExecutionNotFoundException$1);
+var PipelineExecutionNotStoppableException = [
+    -3,
+    n0,
+    _PENSE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(PipelineExecutionNotStoppableException, PipelineExecutionNotStoppableException$1);
+var PipelineExecutionOutdatedException = [
+    -3,
+    n0,
+    _PEOE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(PipelineExecutionOutdatedException, PipelineExecutionOutdatedException$1);
+var PipelineExecutionSummary = [
+    3,
+    n0,
+    _PES,
+    0,
+    [_pEI, _s, _sSt, _sT, _lUT, _sR, _tri, _sTt, _eMx, _eTx, _rM],
+    [
+        0,
+        0,
+        0,
+        4,
+        4,
+        () => SourceRevisionList,
+        () => ExecutionTrigger,
+        () => StopExecutionTrigger,
+        0,
+        0,
+        () => PipelineRollbackMetadata,
+    ],
+];
+var PipelineMetadata = [3, n0, _PM, 0, [_pAi, _cr, _up, _pDA], [0, 4, 4, 4]];
+var PipelineNameInUseException = [
+    -3,
+    n0,
+    _PNIUE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(PipelineNameInUseException, PipelineNameInUseException$1);
+var PipelineNotFoundException = [
+    -3,
+    n0,
+    _PNFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(PipelineNotFoundException, PipelineNotFoundException$1);
+var PipelineRollbackMetadata = [3, n0, _PRM, 0, [_rTPEI], [0]];
+var PipelineSummary = [3, n0, _PS, 0, [_na, _v, _pT, _eMx, _cr, _up], [0, 1, 0, 0, 4, 4]];
+var PipelineTriggerDeclaration = [
+    3,
+    n0,
+    _PTD,
+    0,
+    [_pTr, _gC],
+    [0, () => GitConfiguration],
+];
+var PipelineVariable = [3, n0, _PV, 0, [_na, _va], [0, 0]];
+var PipelineVariableDeclaration = [3, n0, _PVD, 0, [_na, _dV, _d], [0, 0, 0]];
+var PipelineVersionNotFoundException = [
+    -3,
+    n0,
+    _PVNFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(PipelineVersionNotFoundException, PipelineVersionNotFoundException$1);
+var PollForJobsInput = [
+    3,
+    n0,
+    _PFJI,
+    0,
+    [_aTI, _mBS, _qP],
+    [() => ActionTypeId, 1, 128 | 0],
+];
+var PollForJobsOutput = [3, n0, _PFJO, 0, [_j], [[() => JobList, 0]]];
+var PollForThirdPartyJobsInput = [
+    3,
+    n0,
+    _PFTPJI,
+    0,
+    [_aTI, _mBS],
+    [() => ActionTypeId, 1],
+];
+var PollForThirdPartyJobsOutput = [3, n0, _PFTPJO, 0, [_j], [() => ThirdPartyJobList]];
+var PutActionRevisionInput = [
+    3,
+    n0,
+    _PARI,
+    0,
+    [_pN, _sN, _aN, _aRc],
+    [0, 0, 0, () => ActionRevision],
+];
+var PutActionRevisionOutput = [3, n0, _PARO, 0, [_nR, _pEI], [2, 0]];
+var PutApprovalResultInput = [
+    3,
+    n0,
+    _PARIu,
+    0,
+    [_pN, _sN, _aN, _res, _to],
+    [0, 0, 0, () => ApprovalResult, 0],
+];
+var PutApprovalResultOutput = [3, n0, _PAROu, 0, [_aAp], [4]];
+var PutJobFailureResultInput = [3, n0, _PJFRI, 0, [_jI, _fD], [0, () => FailureDetails]];
+var PutJobSuccessResultInput = [
+    3,
+    n0,
+    _PJSRI,
+    0,
+    [_jI, _cR, _cTo, _eDx, _oV],
+    [0, () => CurrentRevision, 0, () => ExecutionDetails, 128 | 0],
+];
+var PutThirdPartyJobFailureResultInput = [
+    3,
+    n0,
+    _PTPJFRI,
+    0,
+    [_jI, _cT, _fD],
+    [0, 0, () => FailureDetails],
+];
+var PutThirdPartyJobSuccessResultInput = [
+    3,
+    n0,
+    _PTPJSRI,
+    0,
+    [_jI, _cT, _cR, _cTo, _eDx],
+    [0, 0, () => CurrentRevision, 0, () => ExecutionDetails],
+];
+var PutWebhookInput = [
+    3,
+    n0,
+    _PWI,
+    0,
+    [_we, _ta],
+    [() => WebhookDefinition, () => TagList],
+];
+var PutWebhookOutput = [3, n0, _PWO, 0, [_we], [() => ListWebhookItem]];
+var RegisterWebhookWithThirdPartyInput = [3, n0, _RWWTPI, 0, [_wN], [0]];
+var RegisterWebhookWithThirdPartyOutput = [3, n0, _RWWTPO, 0, [], []];
+var RequestFailedException = [
+    -3,
+    n0,
+    _RFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(RequestFailedException, RequestFailedException$1);
+var ResolvedPipelineVariable = [3, n0, _RPV, 0, [_na, _rV], [0, 0]];
+var ResourceNotFoundException = [
+    -3,
+    n0,
+    _RNFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ResourceNotFoundException, ResourceNotFoundException$1);
+var RetryConfiguration = [3, n0, _RC, 0, [_rMe], [0]];
+var RetryStageExecutionInput = [3, n0, _RSEI, 0, [_pN, _sN, _pEI, _rMe], [0, 0, 0, 0]];
+var RetryStageExecutionOutput = [3, n0, _RSEO, 0, [_pEI], [0]];
+var RetryStageMetadata = [3, n0, _RSM, 0, [_aSRA, _mSRA, _lRT], [1, 1, 0]];
+var RollbackStageInput = [3, n0, _RSI, 0, [_pN, _sN, _tPEI], [0, 0, 0]];
+var RollbackStageOutput = [3, n0, _RSO, 0, [_pEI], [0]];
+var RuleConfigurationProperty = [
+    3,
+    n0,
+    _RCP,
+    0,
+    [_na, _r, _k, _se, _q, _d, _t],
+    [0, 2, 2, 2, 2, 0, 0],
+];
+var RuleDeclaration = [
+    3,
+    n0,
+    _RD,
+    0,
+    [_na, _rTI, _c, _co, _iA, _rA, _re, _tIM],
+    [0, () => RuleTypeId, 128 | 0, 64 | 0, () => InputArtifactList, 0, 0, 1],
+];
+var RuleExecution = [
+    3,
+    n0,
+    _RE,
+    0,
+    [_rEI, _s, _su, _lSC, _to, _lUB, _eEI, _eEU, _eD],
+    [0, 0, 0, 4, 0, 0, 0, 0, () => ErrorDetails],
+];
+var RuleExecutionDetail = [
+    3,
+    n0,
+    _RED,
+    0,
+    [_pEI, _rEI, _pV, _sN, _rN, _sT, _lUT, _uB, _s, _i, _o],
+    [0, 0, 1, 0, 0, 4, 4, 0, 0, () => RuleExecutionInput, () => RuleExecutionOutput],
+];
+var RuleExecutionFilter = [
+    3,
+    n0,
+    _REF,
+    0,
+    [_pEI, _lIPE],
+    [0, () => LatestInPipelineExecutionFilter],
+];
+var RuleExecutionInput = [
+    3,
+    n0,
+    _REI,
+    0,
+    [_rTI, _c, _rC, _rA, _re, _iA],
+    [() => RuleTypeId, 128 | 0, 128 | 0, 0, 0, () => ArtifactDetailList],
+];
+var RuleExecutionOutput = [3, n0, _REO, 0, [_eR], [() => RuleExecutionResult]];
+var RuleExecutionResult = [
+    3,
+    n0,
+    _RER,
+    0,
+    [_eEI, _eES, _eEU, _eD],
+    [0, 0, 0, () => ErrorDetails],
+];
+var RuleRevision = [3, n0, _RR, 0, [_rI, _rCI, _cr], [0, 0, 4]];
+var RuleState = [
+    3,
+    n0,
+    _RS,
+    0,
+    [_rN, _cR, _lE, _eU, _rU],
+    [0, () => RuleRevision, () => RuleExecution, 0, 0],
+];
+var RuleType = [
+    3,
+    n0,
+    _RT,
+    0,
+    [_id, _set, _rCP, _iAD],
+    [() => RuleTypeId, () => RuleTypeSettings, () => RuleConfigurationPropertyList, () => ArtifactDetails],
+];
+var RuleTypeId = [3, n0, _RTI, 0, [_ca, _ow, _pro, _v], [0, 0, 0, 0]];
+var RuleTypeSettings = [3, n0, _RTS, 0, [_tPCU, _eUT, _eUTx, _rUT], [0, 0, 0, 0]];
+var S3ArtifactLocation = [3, n0, _SAL, 0, [_bN, _oK], [0, 0]];
+var S3Location = [3, n0, _SL, 0, [_bu, _k], [0, 0]];
+var SourceRevision = [3, n0, _SR, 0, [_aN, _rI, _rS, _rU], [0, 0, 0, 0]];
+var SourceRevisionOverride = [3, n0, _SRO, 0, [_aN, _rTe, _rVe], [0, 0, 0]];
+var StageConditionsExecution = [3, n0, _SCE, 0, [_s, _su], [0, 0]];
+var StageConditionState = [
+    3,
+    n0,
+    _SCS,
+    0,
+    [_lE, _cS],
+    [() => StageConditionsExecution, () => ConditionStateList],
+];
+var StageContext = [3, n0, _SC, 0, [_na], [0]];
+var StageDeclaration = [
+    3,
+    n0,
+    _SD,
+    0,
+    [_na, _bl, _act, _oF, _oS, _bE],
+    [
+        0,
+        () => StageBlockerDeclarationList,
+        () => StageActionDeclarationList,
+        () => FailureConditions,
+        () => SuccessConditions,
+        () => BeforeEntryConditions,
+    ],
+];
+var StageExecution = [3, n0, _SE, 0, [_pEI, _s, _t], [0, 0, 0]];
+var StageNotFoundException = [
+    -3,
+    n0,
+    _SNFE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(StageNotFoundException, StageNotFoundException$1);
+var StageNotRetryableException = [
+    -3,
+    n0,
+    _SNRE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(StageNotRetryableException, StageNotRetryableException$1);
+var StageState = [
+    3,
+    n0,
+    _SS,
+    0,
+    [_sN, _iE, _iEn, _iTS, _aSc, _lE, _bECS, _oSCS, _oFCS, _rSM],
+    [
+        0,
+        () => StageExecution,
+        () => StageExecutionList,
+        () => TransitionState,
+        () => ActionStateList,
+        () => StageExecution,
+        () => StageConditionState,
+        () => StageConditionState,
+        () => StageConditionState,
+        () => RetryStageMetadata,
+    ],
+];
+var StartPipelineExecutionInput = [
+    3,
+    n0,
+    _SPEI,
+    0,
+    [_na, _var, _cRT, _sR],
+    [0, () => PipelineVariableList, [0, 4], () => SourceRevisionOverrideList],
+];
+var StartPipelineExecutionOutput = [3, n0, _SPEO, 0, [_pEI], [0]];
+var StopExecutionTrigger = [3, n0, _SET, 0, [_rea], [0]];
+var StopPipelineExecutionInput = [3, n0, _SPEIt, 0, [_pN, _pEI, _ab, _rea], [0, 0, 2, 0]];
+var StopPipelineExecutionOutput = [3, n0, _SPEOt, 0, [_pEI], [0]];
+var SucceededInStageFilter = [3, n0, _SISF, 0, [_sN], [0]];
+var SuccessConditions = [3, n0, _SCu, 0, [_con], [() => ConditionList]];
+var Tag = [3, n0, _T, 0, [_k, _va], [0, 0]];
+var TagResourceInput = [3, n0, _TRI, 0, [_rAe, _ta], [0, () => TagList]];
+var TagResourceOutput = [3, n0, _TRO, 0, [], []];
+var TargetFilter = [3, n0, _TF, 0, [_na, _val], [0, 64 | 0]];
+var ThirdPartyJob = [3, n0, _TPJ, 0, [_cIl, _jI], [0, 0]];
+var ThirdPartyJobData = [
+    3,
+    n0,
+    _TPJD,
+    0,
+    [_aTI, _aC, _pCi, _iA, _oA, _aCr, _cTo, _eK],
+    [
+        () => ActionTypeId,
+        () => ActionConfiguration,
+        () => PipelineContext,
+        () => ArtifactList,
+        () => ArtifactList,
+        [() => AWSSessionCredentials, 0],
+        0,
+        () => EncryptionKey,
+    ],
+];
+var ThirdPartyJobDetails = [
+    3,
+    n0,
+    _TPJDh,
+    0,
+    [_id, _da, _n],
+    [0, [() => ThirdPartyJobData, 0], 0],
+];
+var TooManyTagsException = [
+    -3,
+    n0,
+    _TMTE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(TooManyTagsException, TooManyTagsException$1);
+var TransitionState = [3, n0, _TS, 0, [_en, _lCB, _lCA, _dR], [2, 0, 4, 0]];
+var UnableToRollbackStageException = [
+    -3,
+    n0,
+    _UTRSE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(UnableToRollbackStageException, UnableToRollbackStageException$1);
+var UntagResourceInput = [3, n0, _URI, 0, [_rAe, _tK], [0, 64 | 0]];
+var UntagResourceOutput = [3, n0, _URO, 0, [], []];
+var UpdateActionTypeInput = [3, n0, _UATI, 0, [_aT], [() => ActionTypeDeclaration]];
+var UpdatePipelineInput = [3, n0, _UPI, 0, [_pi], [() => PipelineDeclaration]];
+var UpdatePipelineOutput = [3, n0, _UPO, 0, [_pi], [() => PipelineDeclaration]];
+var ValidationException = [
+    -3,
+    n0,
+    _VE,
+    {
+        [_e]: _cl,
+    },
+    [_m],
+    [0],
+];
+schema.TypeRegistry.for(n0).registerError(ValidationException, ValidationException$1);
+var WebhookAuthConfiguration = [3, n0, _WAC, 0, [_AIPR, _STe], [0, 0]];
+var WebhookDefinition = [
+    3,
+    n0,
+    _WD,
+    0,
+    [_na, _tP, _tA, _fi, _au, _aCu],
+    [0, 0, 0, () => WebhookFilters, 0, () => WebhookAuthConfiguration],
+];
+var WebhookFilterRule = [3, n0, _WFR, 0, [_jP, _mE], [0, 0]];
+var WebhookNotFoundException = [
+    -3,
+    n0,
+    _WNFE,
+    {
+        [_e]: _cl,
+    },
+    [],
+    [],
+];
+schema.TypeRegistry.for(n0).registerError(WebhookNotFoundException, WebhookNotFoundException$1);
+var __Unit = "unit";
+var CodePipelineServiceException = [-3, _sm, "CodePipelineServiceException", 0, [], []];
+schema.TypeRegistry.for(_sm).registerError(CodePipelineServiceException, CodePipelineServiceException$1);
+var ActionConfigurationPropertyList = [1, n0, _ACPL, 0, () => ActionConfigurationProperty];
+var ActionExecutionDetailList = [1, n0, _AEDL, 0, () => ActionExecutionDetail];
+var ActionStateList = [1, n0, _ASL, 0, () => ActionState];
+var ActionTypeList = [1, n0, _ATL, 0, () => ActionType];
+var ActionTypeProperties = [1, n0, _ATPct, 0, () => ActionTypeProperty];
+var ArtifactDetailList = [1, n0, _ADL, 0, () => ArtifactDetail];
+var ArtifactList = [1, n0, _ALr, 0, () => Artifact];
+var ArtifactRevisionList = [1, n0, _ARL, 0, () => ArtifactRevision];
+var ConditionList = [1, n0, _CL, 0, () => Condition];
+var ConditionStateList = [1, n0, _CSL, 0, () => ConditionState];
+var DeployActionExecutionTargetList = [1, n0, _DAETL, 0, () => DeployActionExecutionTarget];
+var DeployTargetEventList = [1, n0, _DTEL, 0, () => DeployTargetEvent];
+var EnvironmentVariableList = [1, n0, _EVL, 0, () => EnvironmentVariable];
+var GitPullRequestFilterList = [1, n0, _GPRFL, 0, () => GitPullRequestFilter];
+var GitPushFilterList = [1, n0, _GPFL, 0, () => GitPushFilter];
+var InputArtifactList = [1, n0, _IAL, 0, () => InputArtifact];
+var JobList = [1, n0, _JL, 0, [() => Job, 0]];
+var OutputArtifactList = [1, n0, _OAL, 0, () => OutputArtifact];
+var PipelineExecutionSummaryList = [1, n0, _PESL, 0, () => PipelineExecutionSummary];
+var PipelineList = [1, n0, _PL, 0, () => PipelineSummary];
+var PipelineStageDeclarationList = [1, n0, _PSDL, 0, () => StageDeclaration];
+var PipelineTriggerDeclarationList = [1, n0, _PTDL, 0, () => PipelineTriggerDeclaration];
+var PipelineVariableDeclarationList = [1, n0, _PVDL, 0, () => PipelineVariableDeclaration];
+var PipelineVariableList = [1, n0, _PVL, 0, () => PipelineVariable];
+var ResolvedPipelineVariableList = [1, n0, _RPVL, 0, () => ResolvedPipelineVariable];
+var RuleConfigurationPropertyList = [1, n0, _RCPL, 0, () => RuleConfigurationProperty];
+var RuleDeclarationList = [1, n0, _RDL, 0, () => RuleDeclaration];
+var RuleExecutionDetailList = [1, n0, _REDL, 0, () => RuleExecutionDetail];
+var RuleStateList = [1, n0, _RSL, 0, () => RuleState];
+var RuleTypeList = [1, n0, _RTL, 0, () => RuleType];
+var SourceRevisionList = [1, n0, _SRL, 0, () => SourceRevision];
+var SourceRevisionOverrideList = [1, n0, _SROL, 0, () => SourceRevisionOverride];
+var StageActionDeclarationList = [1, n0, _SADL, 0, () => ActionDeclaration];
+var StageBlockerDeclarationList = [1, n0, _SBDL, 0, () => BlockerDeclaration];
+var StageExecutionList = [1, n0, _SEL, 0, () => StageExecution];
+var StageStateList = [1, n0, _SSL, 0, () => StageState];
+var TagList = [1, n0, _TL, 0, () => Tag];
+var TargetFilterList = [1, n0, _TFL, 0, () => TargetFilter];
+var ThirdPartyJobList = [1, n0, _TPJL, 0, () => ThirdPartyJob];
+var WebhookFilters = [1, n0, _WF, 0, () => WebhookFilterRule];
+var WebhookList = [1, n0, _WL, 0, () => ListWebhookItem];
+var ArtifactStoreMap = [2, n0, _ASM, 0, 0, () => ArtifactStore];
+var AcknowledgeJob = [
+    9,
+    n0,
+    _AJ,
+    0,
+    () => AcknowledgeJobInput,
+    () => AcknowledgeJobOutput,
+];
+var AcknowledgeThirdPartyJob = [
+    9,
+    n0,
+    _ATPJ,
+    0,
+    () => AcknowledgeThirdPartyJobInput,
+    () => AcknowledgeThirdPartyJobOutput,
+];
+var CreateCustomActionType = [
+    9,
+    n0,
+    _CCAT,
+    0,
+    () => CreateCustomActionTypeInput,
+    () => CreateCustomActionTypeOutput,
+];
+var CreatePipeline = [
+    9,
+    n0,
+    _CP,
+    0,
+    () => CreatePipelineInput,
+    () => CreatePipelineOutput,
+];
+var DeleteCustomActionType = [
+    9,
+    n0,
+    _DCAT,
+    0,
+    () => DeleteCustomActionTypeInput,
+    () => __Unit,
+];
+var DeletePipeline = [9, n0, _DP, 0, () => DeletePipelineInput, () => __Unit];
+var DeleteWebhook = [9, n0, _DW, 0, () => DeleteWebhookInput, () => DeleteWebhookOutput];
+var DeregisterWebhookWithThirdParty = [
+    9,
+    n0,
+    _DWWTP,
+    0,
+    () => DeregisterWebhookWithThirdPartyInput,
+    () => DeregisterWebhookWithThirdPartyOutput,
+];
+var DisableStageTransition = [
+    9,
+    n0,
+    _DST,
+    0,
+    () => DisableStageTransitionInput,
+    () => __Unit,
+];
+var EnableStageTransition = [
+    9,
+    n0,
+    _EST,
+    0,
+    () => EnableStageTransitionInput,
+    () => __Unit,
+];
+var GetActionType = [9, n0, _GAT, 0, () => GetActionTypeInput, () => GetActionTypeOutput];
+var GetJobDetails = [9, n0, _GJD, 0, () => GetJobDetailsInput, () => GetJobDetailsOutput];
+var GetPipeline = [9, n0, _GP, 0, () => GetPipelineInput, () => GetPipelineOutput];
+var GetPipelineExecution = [
+    9,
+    n0,
+    _GPE,
+    0,
+    () => GetPipelineExecutionInput,
+    () => GetPipelineExecutionOutput,
+];
+var GetPipelineState = [
+    9,
+    n0,
+    _GPS,
+    0,
+    () => GetPipelineStateInput,
+    () => GetPipelineStateOutput,
+];
+var GetThirdPartyJobDetails = [
+    9,
+    n0,
+    _GTPJD,
+    0,
+    () => GetThirdPartyJobDetailsInput,
+    () => GetThirdPartyJobDetailsOutput,
+];
+var ListActionExecutions = [
+    9,
+    n0,
+    _LAE,
+    0,
+    () => ListActionExecutionsInput,
+    () => ListActionExecutionsOutput,
+];
+var ListActionTypes = [
+    9,
+    n0,
+    _LAT,
+    0,
+    () => ListActionTypesInput,
+    () => ListActionTypesOutput,
+];
+var ListDeployActionExecutionTargets = [
+    9,
+    n0,
+    _LDAET,
+    0,
+    () => ListDeployActionExecutionTargetsInput,
+    () => ListDeployActionExecutionTargetsOutput,
+];
+var ListPipelineExecutions = [
+    9,
+    n0,
+    _LPE,
+    0,
+    () => ListPipelineExecutionsInput,
+    () => ListPipelineExecutionsOutput,
+];
+var ListPipelines = [9, n0, _LP, 0, () => ListPipelinesInput, () => ListPipelinesOutput];
+var ListRuleExecutions = [
+    9,
+    n0,
+    _LRE,
+    0,
+    () => ListRuleExecutionsInput,
+    () => ListRuleExecutionsOutput,
+];
+var ListRuleTypes = [9, n0, _LRT, 0, () => ListRuleTypesInput, () => ListRuleTypesOutput];
+var ListTagsForResource = [
+    9,
+    n0,
+    _LTFR,
+    0,
+    () => ListTagsForResourceInput,
+    () => ListTagsForResourceOutput,
+];
+var ListWebhooks = [9, n0, _LW, 0, () => ListWebhooksInput, () => ListWebhooksOutput];
+var OverrideStageCondition = [
+    9,
+    n0,
+    _OSC,
+    0,
+    () => OverrideStageConditionInput,
+    () => __Unit,
+];
+var PollForJobs = [9, n0, _PFJ, 0, () => PollForJobsInput, () => PollForJobsOutput];
+var PollForThirdPartyJobs = [
+    9,
+    n0,
+    _PFTPJ,
+    0,
+    () => PollForThirdPartyJobsInput,
+    () => PollForThirdPartyJobsOutput,
+];
+var PutActionRevision = [
+    9,
+    n0,
+    _PAR,
+    0,
+    () => PutActionRevisionInput,
+    () => PutActionRevisionOutput,
+];
+var PutApprovalResult = [
+    9,
+    n0,
+    _PARu,
+    0,
+    () => PutApprovalResultInput,
+    () => PutApprovalResultOutput,
+];
+var PutJobFailureResult = [9, n0, _PJFR, 0, () => PutJobFailureResultInput, () => __Unit];
+var PutJobSuccessResult = [9, n0, _PJSR, 0, () => PutJobSuccessResultInput, () => __Unit];
+var PutThirdPartyJobFailureResult = [
+    9,
+    n0,
+    _PTPJFR,
+    0,
+    () => PutThirdPartyJobFailureResultInput,
+    () => __Unit,
+];
+var PutThirdPartyJobSuccessResult = [
+    9,
+    n0,
+    _PTPJSR,
+    0,
+    () => PutThirdPartyJobSuccessResultInput,
+    () => __Unit,
+];
+var PutWebhook = [9, n0, _PW, 0, () => PutWebhookInput, () => PutWebhookOutput];
+var RegisterWebhookWithThirdParty = [
+    9,
+    n0,
+    _RWWTP,
+    0,
+    () => RegisterWebhookWithThirdPartyInput,
+    () => RegisterWebhookWithThirdPartyOutput,
+];
+var RetryStageExecution = [
+    9,
+    n0,
+    _RSE,
+    0,
+    () => RetryStageExecutionInput,
+    () => RetryStageExecutionOutput,
+];
+var RollbackStage = [9, n0, _RSo, 0, () => RollbackStageInput, () => RollbackStageOutput];
+var StartPipelineExecution = [
+    9,
+    n0,
+    _SPE,
+    0,
+    () => StartPipelineExecutionInput,
+    () => StartPipelineExecutionOutput,
+];
+var StopPipelineExecution = [
+    9,
+    n0,
+    _SPEt,
+    0,
+    () => StopPipelineExecutionInput,
+    () => StopPipelineExecutionOutput,
+];
+var TagResource = [9, n0, _TR, 0, () => TagResourceInput, () => TagResourceOutput];
+var UntagResource = [9, n0, _UR, 0, () => UntagResourceInput, () => UntagResourceOutput];
+var UpdateActionType = [9, n0, _UAT, 0, () => UpdateActionTypeInput, () => __Unit];
+var UpdatePipeline = [
+    9,
+    n0,
+    _UP,
+    0,
+    () => UpdatePipelineInput,
+    () => UpdatePipelineOutput,
+];
 
 class AcknowledgeJobCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "AcknowledgeJob", {})
     .n("CodePipelineClient", "AcknowledgeJobCommand")
-    .f(void 0, void 0)
-    .ser(se_AcknowledgeJobCommand)
-    .de(de_AcknowledgeJobCommand)
+    .sc(AcknowledgeJob)
     .build() {
 }
 
@@ -6009,16 +6268,11 @@ class AcknowledgeThirdPartyJobCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "AcknowledgeThirdPartyJob", {})
     .n("CodePipelineClient", "AcknowledgeThirdPartyJobCommand")
-    .f(void 0, void 0)
-    .ser(se_AcknowledgeThirdPartyJobCommand)
-    .de(de_AcknowledgeThirdPartyJobCommand)
+    .sc(AcknowledgeThirdPartyJob)
     .build() {
 }
 
@@ -6026,16 +6280,11 @@ class CreateCustomActionTypeCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "CreateCustomActionType", {})
     .n("CodePipelineClient", "CreateCustomActionTypeCommand")
-    .f(void 0, void 0)
-    .ser(se_CreateCustomActionTypeCommand)
-    .de(de_CreateCustomActionTypeCommand)
+    .sc(CreateCustomActionType)
     .build() {
 }
 
@@ -6043,16 +6292,11 @@ class CreatePipelineCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "CreatePipeline", {})
     .n("CodePipelineClient", "CreatePipelineCommand")
-    .f(void 0, void 0)
-    .ser(se_CreatePipelineCommand)
-    .de(de_CreatePipelineCommand)
+    .sc(CreatePipeline)
     .build() {
 }
 
@@ -6060,16 +6304,11 @@ class DeleteCustomActionTypeCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "DeleteCustomActionType", {})
     .n("CodePipelineClient", "DeleteCustomActionTypeCommand")
-    .f(void 0, void 0)
-    .ser(se_DeleteCustomActionTypeCommand)
-    .de(de_DeleteCustomActionTypeCommand)
+    .sc(DeleteCustomActionType)
     .build() {
 }
 
@@ -6077,16 +6316,11 @@ class DeletePipelineCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "DeletePipeline", {})
     .n("CodePipelineClient", "DeletePipelineCommand")
-    .f(void 0, void 0)
-    .ser(se_DeletePipelineCommand)
-    .de(de_DeletePipelineCommand)
+    .sc(DeletePipeline)
     .build() {
 }
 
@@ -6094,16 +6328,11 @@ class DeleteWebhookCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "DeleteWebhook", {})
     .n("CodePipelineClient", "DeleteWebhookCommand")
-    .f(void 0, void 0)
-    .ser(se_DeleteWebhookCommand)
-    .de(de_DeleteWebhookCommand)
+    .sc(DeleteWebhook)
     .build() {
 }
 
@@ -6111,16 +6340,11 @@ class DeregisterWebhookWithThirdPartyCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "DeregisterWebhookWithThirdParty", {})
     .n("CodePipelineClient", "DeregisterWebhookWithThirdPartyCommand")
-    .f(void 0, void 0)
-    .ser(se_DeregisterWebhookWithThirdPartyCommand)
-    .de(de_DeregisterWebhookWithThirdPartyCommand)
+    .sc(DeregisterWebhookWithThirdParty)
     .build() {
 }
 
@@ -6128,16 +6352,11 @@ class DisableStageTransitionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "DisableStageTransition", {})
     .n("CodePipelineClient", "DisableStageTransitionCommand")
-    .f(void 0, void 0)
-    .ser(se_DisableStageTransitionCommand)
-    .de(de_DisableStageTransitionCommand)
+    .sc(DisableStageTransition)
     .build() {
 }
 
@@ -6145,16 +6364,11 @@ class EnableStageTransitionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "EnableStageTransition", {})
     .n("CodePipelineClient", "EnableStageTransitionCommand")
-    .f(void 0, void 0)
-    .ser(se_EnableStageTransitionCommand)
-    .de(de_EnableStageTransitionCommand)
+    .sc(EnableStageTransition)
     .build() {
 }
 
@@ -6162,16 +6376,11 @@ class GetActionTypeCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "GetActionType", {})
     .n("CodePipelineClient", "GetActionTypeCommand")
-    .f(void 0, void 0)
-    .ser(se_GetActionTypeCommand)
-    .de(de_GetActionTypeCommand)
+    .sc(GetActionType)
     .build() {
 }
 
@@ -6179,16 +6388,11 @@ class GetJobDetailsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "GetJobDetails", {})
     .n("CodePipelineClient", "GetJobDetailsCommand")
-    .f(void 0, GetJobDetailsOutputFilterSensitiveLog)
-    .ser(se_GetJobDetailsCommand)
-    .de(de_GetJobDetailsCommand)
+    .sc(GetJobDetails)
     .build() {
 }
 
@@ -6196,16 +6400,11 @@ class GetPipelineCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "GetPipeline", {})
     .n("CodePipelineClient", "GetPipelineCommand")
-    .f(void 0, void 0)
-    .ser(se_GetPipelineCommand)
-    .de(de_GetPipelineCommand)
+    .sc(GetPipeline)
     .build() {
 }
 
@@ -6213,16 +6412,11 @@ class GetPipelineExecutionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "GetPipelineExecution", {})
     .n("CodePipelineClient", "GetPipelineExecutionCommand")
-    .f(void 0, void 0)
-    .ser(se_GetPipelineExecutionCommand)
-    .de(de_GetPipelineExecutionCommand)
+    .sc(GetPipelineExecution)
     .build() {
 }
 
@@ -6230,16 +6424,11 @@ class GetPipelineStateCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "GetPipelineState", {})
     .n("CodePipelineClient", "GetPipelineStateCommand")
-    .f(void 0, void 0)
-    .ser(se_GetPipelineStateCommand)
-    .de(de_GetPipelineStateCommand)
+    .sc(GetPipelineState)
     .build() {
 }
 
@@ -6247,16 +6436,11 @@ class GetThirdPartyJobDetailsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "GetThirdPartyJobDetails", {})
     .n("CodePipelineClient", "GetThirdPartyJobDetailsCommand")
-    .f(void 0, GetThirdPartyJobDetailsOutputFilterSensitiveLog)
-    .ser(se_GetThirdPartyJobDetailsCommand)
-    .de(de_GetThirdPartyJobDetailsCommand)
+    .sc(GetThirdPartyJobDetails)
     .build() {
 }
 
@@ -6264,16 +6448,11 @@ class ListActionExecutionsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListActionExecutions", {})
     .n("CodePipelineClient", "ListActionExecutionsCommand")
-    .f(void 0, void 0)
-    .ser(se_ListActionExecutionsCommand)
-    .de(de_ListActionExecutionsCommand)
+    .sc(ListActionExecutions)
     .build() {
 }
 
@@ -6281,16 +6460,11 @@ class ListActionTypesCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListActionTypes", {})
     .n("CodePipelineClient", "ListActionTypesCommand")
-    .f(void 0, void 0)
-    .ser(se_ListActionTypesCommand)
-    .de(de_ListActionTypesCommand)
+    .sc(ListActionTypes)
     .build() {
 }
 
@@ -6298,16 +6472,11 @@ class ListDeployActionExecutionTargetsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListDeployActionExecutionTargets", {})
     .n("CodePipelineClient", "ListDeployActionExecutionTargetsCommand")
-    .f(void 0, void 0)
-    .ser(se_ListDeployActionExecutionTargetsCommand)
-    .de(de_ListDeployActionExecutionTargetsCommand)
+    .sc(ListDeployActionExecutionTargets)
     .build() {
 }
 
@@ -6315,16 +6484,11 @@ class ListPipelineExecutionsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListPipelineExecutions", {})
     .n("CodePipelineClient", "ListPipelineExecutionsCommand")
-    .f(void 0, void 0)
-    .ser(se_ListPipelineExecutionsCommand)
-    .de(de_ListPipelineExecutionsCommand)
+    .sc(ListPipelineExecutions)
     .build() {
 }
 
@@ -6332,16 +6496,11 @@ class ListPipelinesCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListPipelines", {})
     .n("CodePipelineClient", "ListPipelinesCommand")
-    .f(void 0, void 0)
-    .ser(se_ListPipelinesCommand)
-    .de(de_ListPipelinesCommand)
+    .sc(ListPipelines)
     .build() {
 }
 
@@ -6349,16 +6508,11 @@ class ListRuleExecutionsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListRuleExecutions", {})
     .n("CodePipelineClient", "ListRuleExecutionsCommand")
-    .f(void 0, void 0)
-    .ser(se_ListRuleExecutionsCommand)
-    .de(de_ListRuleExecutionsCommand)
+    .sc(ListRuleExecutions)
     .build() {
 }
 
@@ -6366,16 +6520,11 @@ class ListRuleTypesCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListRuleTypes", {})
     .n("CodePipelineClient", "ListRuleTypesCommand")
-    .f(void 0, void 0)
-    .ser(se_ListRuleTypesCommand)
-    .de(de_ListRuleTypesCommand)
+    .sc(ListRuleTypes)
     .build() {
 }
 
@@ -6383,16 +6532,11 @@ class ListTagsForResourceCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListTagsForResource", {})
     .n("CodePipelineClient", "ListTagsForResourceCommand")
-    .f(void 0, void 0)
-    .ser(se_ListTagsForResourceCommand)
-    .de(de_ListTagsForResourceCommand)
+    .sc(ListTagsForResource)
     .build() {
 }
 
@@ -6400,16 +6544,11 @@ class ListWebhooksCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "ListWebhooks", {})
     .n("CodePipelineClient", "ListWebhooksCommand")
-    .f(void 0, void 0)
-    .ser(se_ListWebhooksCommand)
-    .de(de_ListWebhooksCommand)
+    .sc(ListWebhooks)
     .build() {
 }
 
@@ -6417,16 +6556,11 @@ class OverrideStageConditionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "OverrideStageCondition", {})
     .n("CodePipelineClient", "OverrideStageConditionCommand")
-    .f(void 0, void 0)
-    .ser(se_OverrideStageConditionCommand)
-    .de(de_OverrideStageConditionCommand)
+    .sc(OverrideStageCondition)
     .build() {
 }
 
@@ -6434,16 +6568,11 @@ class PollForJobsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PollForJobs", {})
     .n("CodePipelineClient", "PollForJobsCommand")
-    .f(void 0, PollForJobsOutputFilterSensitiveLog)
-    .ser(se_PollForJobsCommand)
-    .de(de_PollForJobsCommand)
+    .sc(PollForJobs)
     .build() {
 }
 
@@ -6451,16 +6580,11 @@ class PollForThirdPartyJobsCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PollForThirdPartyJobs", {})
     .n("CodePipelineClient", "PollForThirdPartyJobsCommand")
-    .f(void 0, void 0)
-    .ser(se_PollForThirdPartyJobsCommand)
-    .de(de_PollForThirdPartyJobsCommand)
+    .sc(PollForThirdPartyJobs)
     .build() {
 }
 
@@ -6468,16 +6592,11 @@ class PutActionRevisionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PutActionRevision", {})
     .n("CodePipelineClient", "PutActionRevisionCommand")
-    .f(void 0, void 0)
-    .ser(se_PutActionRevisionCommand)
-    .de(de_PutActionRevisionCommand)
+    .sc(PutActionRevision)
     .build() {
 }
 
@@ -6485,16 +6604,11 @@ class PutApprovalResultCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PutApprovalResult", {})
     .n("CodePipelineClient", "PutApprovalResultCommand")
-    .f(void 0, void 0)
-    .ser(se_PutApprovalResultCommand)
-    .de(de_PutApprovalResultCommand)
+    .sc(PutApprovalResult)
     .build() {
 }
 
@@ -6502,16 +6616,11 @@ class PutJobFailureResultCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PutJobFailureResult", {})
     .n("CodePipelineClient", "PutJobFailureResultCommand")
-    .f(void 0, void 0)
-    .ser(se_PutJobFailureResultCommand)
-    .de(de_PutJobFailureResultCommand)
+    .sc(PutJobFailureResult)
     .build() {
 }
 
@@ -6519,16 +6628,11 @@ class PutJobSuccessResultCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PutJobSuccessResult", {})
     .n("CodePipelineClient", "PutJobSuccessResultCommand")
-    .f(void 0, void 0)
-    .ser(se_PutJobSuccessResultCommand)
-    .de(de_PutJobSuccessResultCommand)
+    .sc(PutJobSuccessResult)
     .build() {
 }
 
@@ -6536,16 +6640,11 @@ class PutThirdPartyJobFailureResultCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PutThirdPartyJobFailureResult", {})
     .n("CodePipelineClient", "PutThirdPartyJobFailureResultCommand")
-    .f(void 0, void 0)
-    .ser(se_PutThirdPartyJobFailureResultCommand)
-    .de(de_PutThirdPartyJobFailureResultCommand)
+    .sc(PutThirdPartyJobFailureResult)
     .build() {
 }
 
@@ -6553,16 +6652,11 @@ class PutThirdPartyJobSuccessResultCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PutThirdPartyJobSuccessResult", {})
     .n("CodePipelineClient", "PutThirdPartyJobSuccessResultCommand")
-    .f(void 0, void 0)
-    .ser(se_PutThirdPartyJobSuccessResultCommand)
-    .de(de_PutThirdPartyJobSuccessResultCommand)
+    .sc(PutThirdPartyJobSuccessResult)
     .build() {
 }
 
@@ -6570,16 +6664,11 @@ class PutWebhookCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "PutWebhook", {})
     .n("CodePipelineClient", "PutWebhookCommand")
-    .f(void 0, void 0)
-    .ser(se_PutWebhookCommand)
-    .de(de_PutWebhookCommand)
+    .sc(PutWebhook)
     .build() {
 }
 
@@ -6587,16 +6676,11 @@ class RegisterWebhookWithThirdPartyCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "RegisterWebhookWithThirdParty", {})
     .n("CodePipelineClient", "RegisterWebhookWithThirdPartyCommand")
-    .f(void 0, void 0)
-    .ser(se_RegisterWebhookWithThirdPartyCommand)
-    .de(de_RegisterWebhookWithThirdPartyCommand)
+    .sc(RegisterWebhookWithThirdParty)
     .build() {
 }
 
@@ -6604,16 +6688,11 @@ class RetryStageExecutionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "RetryStageExecution", {})
     .n("CodePipelineClient", "RetryStageExecutionCommand")
-    .f(void 0, void 0)
-    .ser(se_RetryStageExecutionCommand)
-    .de(de_RetryStageExecutionCommand)
+    .sc(RetryStageExecution)
     .build() {
 }
 
@@ -6621,16 +6700,11 @@ class RollbackStageCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "RollbackStage", {})
     .n("CodePipelineClient", "RollbackStageCommand")
-    .f(void 0, void 0)
-    .ser(se_RollbackStageCommand)
-    .de(de_RollbackStageCommand)
+    .sc(RollbackStage)
     .build() {
 }
 
@@ -6638,16 +6712,11 @@ class StartPipelineExecutionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "StartPipelineExecution", {})
     .n("CodePipelineClient", "StartPipelineExecutionCommand")
-    .f(void 0, void 0)
-    .ser(se_StartPipelineExecutionCommand)
-    .de(de_StartPipelineExecutionCommand)
+    .sc(StartPipelineExecution)
     .build() {
 }
 
@@ -6655,16 +6724,11 @@ class StopPipelineExecutionCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "StopPipelineExecution", {})
     .n("CodePipelineClient", "StopPipelineExecutionCommand")
-    .f(void 0, void 0)
-    .ser(se_StopPipelineExecutionCommand)
-    .de(de_StopPipelineExecutionCommand)
+    .sc(StopPipelineExecution)
     .build() {
 }
 
@@ -6672,16 +6736,11 @@ class TagResourceCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "TagResource", {})
     .n("CodePipelineClient", "TagResourceCommand")
-    .f(void 0, void 0)
-    .ser(se_TagResourceCommand)
-    .de(de_TagResourceCommand)
+    .sc(TagResource)
     .build() {
 }
 
@@ -6689,16 +6748,11 @@ class UntagResourceCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "UntagResource", {})
     .n("CodePipelineClient", "UntagResourceCommand")
-    .f(void 0, void 0)
-    .ser(se_UntagResourceCommand)
-    .de(de_UntagResourceCommand)
+    .sc(UntagResource)
     .build() {
 }
 
@@ -6706,16 +6760,11 @@ class UpdateActionTypeCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "UpdateActionType", {})
     .n("CodePipelineClient", "UpdateActionTypeCommand")
-    .f(void 0, void 0)
-    .ser(se_UpdateActionTypeCommand)
-    .de(de_UpdateActionTypeCommand)
+    .sc(UpdateActionType)
     .build() {
 }
 
@@ -6723,16 +6772,11 @@ class UpdatePipelineCommand extends smithyClient.Command
     .classBuilder()
     .ep(commonParams)
     .m(function (Command, cs, config, o) {
-    return [
-        middlewareSerde.getSerdePlugin(config, this.serialize, this.deserialize),
-        middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions()),
-    ];
+    return [middlewareEndpoint.getEndpointPlugin(config, Command.getEndpointParameterInstructions())];
 })
     .s("CodePipeline_20150709", "UpdatePipeline", {})
     .n("CodePipelineClient", "UpdatePipelineCommand")
-    .f(void 0, void 0)
-    .ser(se_UpdatePipelineCommand)
-    .de(de_UpdatePipelineCommand)
+    .sc(UpdatePipeline)
     .build() {
 }
 
@@ -6810,30 +6854,29 @@ Object.defineProperty(exports, "__Client", ({
     enumerable: true,
     get: function () { return smithyClient.Client; }
 }));
-exports.AWSSessionCredentialsFilterSensitiveLog = AWSSessionCredentialsFilterSensitiveLog;
 exports.AcknowledgeJobCommand = AcknowledgeJobCommand;
 exports.AcknowledgeThirdPartyJobCommand = AcknowledgeThirdPartyJobCommand;
 exports.ActionCategory = ActionCategory;
 exports.ActionConfigurationPropertyType = ActionConfigurationPropertyType;
-exports.ActionExecutionNotFoundException = ActionExecutionNotFoundException;
+exports.ActionExecutionNotFoundException = ActionExecutionNotFoundException$1;
 exports.ActionExecutionStatus = ActionExecutionStatus;
-exports.ActionNotFoundException = ActionNotFoundException;
+exports.ActionNotFoundException = ActionNotFoundException$1;
 exports.ActionOwner = ActionOwner;
-exports.ActionTypeNotFoundException = ActionTypeNotFoundException;
-exports.ApprovalAlreadyCompletedException = ApprovalAlreadyCompletedException;
+exports.ActionTypeNotFoundException = ActionTypeNotFoundException$1;
+exports.ApprovalAlreadyCompletedException = ApprovalAlreadyCompletedException$1;
 exports.ApprovalStatus = ApprovalStatus;
 exports.ArtifactLocationType = ArtifactLocationType;
 exports.ArtifactStoreType = ArtifactStoreType;
 exports.BlockerType = BlockerType;
 exports.CodePipeline = CodePipeline;
 exports.CodePipelineClient = CodePipelineClient;
-exports.CodePipelineServiceException = CodePipelineServiceException;
-exports.ConcurrentModificationException = ConcurrentModificationException;
-exports.ConcurrentPipelineExecutionsLimitExceededException = ConcurrentPipelineExecutionsLimitExceededException;
+exports.CodePipelineServiceException = CodePipelineServiceException$1;
+exports.ConcurrentModificationException = ConcurrentModificationException$1;
+exports.ConcurrentPipelineExecutionsLimitExceededException = ConcurrentPipelineExecutionsLimitExceededException$1;
 exports.ConditionExecutionStatus = ConditionExecutionStatus;
-exports.ConditionNotOverridableException = ConditionNotOverridableException;
+exports.ConditionNotOverridableException = ConditionNotOverridableException$1;
 exports.ConditionType = ConditionType;
-exports.ConflictException = ConflictException;
+exports.ConflictException = ConflictException$1;
 exports.CreateCustomActionTypeCommand = CreateCustomActionTypeCommand;
 exports.CreatePipelineCommand = CreatePipelineCommand;
 exports.DeleteCustomActionTypeCommand = DeleteCustomActionTypeCommand;
@@ -6841,7 +6884,7 @@ exports.DeletePipelineCommand = DeletePipelineCommand;
 exports.DeleteWebhookCommand = DeleteWebhookCommand;
 exports.DeregisterWebhookWithThirdPartyCommand = DeregisterWebhookWithThirdPartyCommand;
 exports.DisableStageTransitionCommand = DisableStageTransitionCommand;
-exports.DuplicatedStopRequestException = DuplicatedStopRequestException;
+exports.DuplicatedStopRequestException = DuplicatedStopRequestException$1;
 exports.EnableStageTransitionCommand = EnableStageTransitionCommand;
 exports.EncryptionKeyType = EncryptionKeyType;
 exports.EnvironmentVariableType = EnvironmentVariableType;
@@ -6851,33 +6894,28 @@ exports.ExecutorType = ExecutorType;
 exports.FailureType = FailureType;
 exports.GetActionTypeCommand = GetActionTypeCommand;
 exports.GetJobDetailsCommand = GetJobDetailsCommand;
-exports.GetJobDetailsOutputFilterSensitiveLog = GetJobDetailsOutputFilterSensitiveLog;
 exports.GetPipelineCommand = GetPipelineCommand;
 exports.GetPipelineExecutionCommand = GetPipelineExecutionCommand;
 exports.GetPipelineStateCommand = GetPipelineStateCommand;
 exports.GetThirdPartyJobDetailsCommand = GetThirdPartyJobDetailsCommand;
-exports.GetThirdPartyJobDetailsOutputFilterSensitiveLog = GetThirdPartyJobDetailsOutputFilterSensitiveLog;
 exports.GitPullRequestEventType = GitPullRequestEventType;
-exports.InvalidActionDeclarationException = InvalidActionDeclarationException;
-exports.InvalidApprovalTokenException = InvalidApprovalTokenException;
-exports.InvalidArnException = InvalidArnException;
-exports.InvalidBlockerDeclarationException = InvalidBlockerDeclarationException;
-exports.InvalidClientTokenException = InvalidClientTokenException;
-exports.InvalidJobException = InvalidJobException;
-exports.InvalidJobStateException = InvalidJobStateException;
-exports.InvalidNextTokenException = InvalidNextTokenException;
-exports.InvalidNonceException = InvalidNonceException;
-exports.InvalidStageDeclarationException = InvalidStageDeclarationException;
-exports.InvalidStructureException = InvalidStructureException;
-exports.InvalidTagsException = InvalidTagsException;
-exports.InvalidWebhookAuthenticationParametersException = InvalidWebhookAuthenticationParametersException;
-exports.InvalidWebhookFilterPatternException = InvalidWebhookFilterPatternException;
-exports.JobDataFilterSensitiveLog = JobDataFilterSensitiveLog;
-exports.JobDetailsFilterSensitiveLog = JobDetailsFilterSensitiveLog;
-exports.JobFilterSensitiveLog = JobFilterSensitiveLog;
-exports.JobNotFoundException = JobNotFoundException;
+exports.InvalidActionDeclarationException = InvalidActionDeclarationException$1;
+exports.InvalidApprovalTokenException = InvalidApprovalTokenException$1;
+exports.InvalidArnException = InvalidArnException$1;
+exports.InvalidBlockerDeclarationException = InvalidBlockerDeclarationException$1;
+exports.InvalidClientTokenException = InvalidClientTokenException$1;
+exports.InvalidJobException = InvalidJobException$1;
+exports.InvalidJobStateException = InvalidJobStateException$1;
+exports.InvalidNextTokenException = InvalidNextTokenException$1;
+exports.InvalidNonceException = InvalidNonceException$1;
+exports.InvalidStageDeclarationException = InvalidStageDeclarationException$1;
+exports.InvalidStructureException = InvalidStructureException$1;
+exports.InvalidTagsException = InvalidTagsException$1;
+exports.InvalidWebhookAuthenticationParametersException = InvalidWebhookAuthenticationParametersException$1;
+exports.InvalidWebhookFilterPatternException = InvalidWebhookFilterPatternException$1;
+exports.JobNotFoundException = JobNotFoundException$1;
 exports.JobStatus = JobStatus;
-exports.LimitExceededException = LimitExceededException;
+exports.LimitExceededException = LimitExceededException$1;
 exports.ListActionExecutionsCommand = ListActionExecutionsCommand;
 exports.ListActionTypesCommand = ListActionTypesCommand;
 exports.ListDeployActionExecutionTargetsCommand = ListDeployActionExecutionTargetsCommand;
@@ -6887,20 +6925,19 @@ exports.ListRuleExecutionsCommand = ListRuleExecutionsCommand;
 exports.ListRuleTypesCommand = ListRuleTypesCommand;
 exports.ListTagsForResourceCommand = ListTagsForResourceCommand;
 exports.ListWebhooksCommand = ListWebhooksCommand;
-exports.NotLatestPipelineExecutionException = NotLatestPipelineExecutionException;
-exports.OutputVariablesSizeExceededException = OutputVariablesSizeExceededException;
+exports.NotLatestPipelineExecutionException = NotLatestPipelineExecutionException$1;
+exports.OutputVariablesSizeExceededException = OutputVariablesSizeExceededException$1;
 exports.OverrideStageConditionCommand = OverrideStageConditionCommand;
-exports.PipelineExecutionNotFoundException = PipelineExecutionNotFoundException;
-exports.PipelineExecutionNotStoppableException = PipelineExecutionNotStoppableException;
-exports.PipelineExecutionOutdatedException = PipelineExecutionOutdatedException;
+exports.PipelineExecutionNotFoundException = PipelineExecutionNotFoundException$1;
+exports.PipelineExecutionNotStoppableException = PipelineExecutionNotStoppableException$1;
+exports.PipelineExecutionOutdatedException = PipelineExecutionOutdatedException$1;
 exports.PipelineExecutionStatus = PipelineExecutionStatus;
-exports.PipelineNameInUseException = PipelineNameInUseException;
-exports.PipelineNotFoundException = PipelineNotFoundException;
+exports.PipelineNameInUseException = PipelineNameInUseException$1;
+exports.PipelineNotFoundException = PipelineNotFoundException$1;
 exports.PipelineTriggerProviderType = PipelineTriggerProviderType;
 exports.PipelineType = PipelineType;
-exports.PipelineVersionNotFoundException = PipelineVersionNotFoundException;
+exports.PipelineVersionNotFoundException = PipelineVersionNotFoundException$1;
 exports.PollForJobsCommand = PollForJobsCommand;
-exports.PollForJobsOutputFilterSensitiveLog = PollForJobsOutputFilterSensitiveLog;
 exports.PollForThirdPartyJobsCommand = PollForThirdPartyJobsCommand;
 exports.PutActionRevisionCommand = PutActionRevisionCommand;
 exports.PutApprovalResultCommand = PutApprovalResultCommand;
@@ -6910,8 +6947,8 @@ exports.PutThirdPartyJobFailureResultCommand = PutThirdPartyJobFailureResultComm
 exports.PutThirdPartyJobSuccessResultCommand = PutThirdPartyJobSuccessResultCommand;
 exports.PutWebhookCommand = PutWebhookCommand;
 exports.RegisterWebhookWithThirdPartyCommand = RegisterWebhookWithThirdPartyCommand;
-exports.RequestFailedException = RequestFailedException;
-exports.ResourceNotFoundException = ResourceNotFoundException;
+exports.RequestFailedException = RequestFailedException$1;
+exports.ResourceNotFoundException = ResourceNotFoundException$1;
 exports.Result = Result;
 exports.RetryStageExecutionCommand = RetryStageExecutionCommand;
 exports.RetryTrigger = RetryTrigger;
@@ -6922,8 +6959,8 @@ exports.RuleExecutionStatus = RuleExecutionStatus;
 exports.RuleOwner = RuleOwner;
 exports.SourceRevisionType = SourceRevisionType;
 exports.StageExecutionStatus = StageExecutionStatus;
-exports.StageNotFoundException = StageNotFoundException;
-exports.StageNotRetryableException = StageNotRetryableException;
+exports.StageNotFoundException = StageNotFoundException$1;
+exports.StageNotRetryableException = StageNotRetryableException$1;
 exports.StageRetryMode = StageRetryMode;
 exports.StageTransitionType = StageTransitionType;
 exports.StartPipelineExecutionCommand = StartPipelineExecutionCommand;
@@ -6931,17 +6968,15 @@ exports.StartTimeRange = StartTimeRange;
 exports.StopPipelineExecutionCommand = StopPipelineExecutionCommand;
 exports.TagResourceCommand = TagResourceCommand;
 exports.TargetFilterName = TargetFilterName;
-exports.ThirdPartyJobDataFilterSensitiveLog = ThirdPartyJobDataFilterSensitiveLog;
-exports.ThirdPartyJobDetailsFilterSensitiveLog = ThirdPartyJobDetailsFilterSensitiveLog;
-exports.TooManyTagsException = TooManyTagsException;
+exports.TooManyTagsException = TooManyTagsException$1;
 exports.TriggerType = TriggerType;
-exports.UnableToRollbackStageException = UnableToRollbackStageException;
+exports.UnableToRollbackStageException = UnableToRollbackStageException$1;
 exports.UntagResourceCommand = UntagResourceCommand;
 exports.UpdateActionTypeCommand = UpdateActionTypeCommand;
 exports.UpdatePipelineCommand = UpdatePipelineCommand;
-exports.ValidationException = ValidationException;
+exports.ValidationException = ValidationException$1;
 exports.WebhookAuthenticationType = WebhookAuthenticationType;
-exports.WebhookNotFoundException = WebhookNotFoundException;
+exports.WebhookNotFoundException = WebhookNotFoundException$1;
 exports.paginateListActionExecutions = paginateListActionExecutions;
 exports.paginateListActionTypes = paginateListActionTypes;
 exports.paginateListDeployActionExecutionTargets = paginateListDeployActionExecutionTargets;
@@ -7026,6 +7061,7 @@ exports.getRuntimeConfig = getRuntimeConfig;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getRuntimeConfig = void 0;
 const core_1 = __nccwpck_require__(8704);
+const protocols_1 = __nccwpck_require__(7288);
 const smithy_client_1 = __nccwpck_require__(1411);
 const url_parser_1 = __nccwpck_require__(4494);
 const util_base64_1 = __nccwpck_require__(8385);
@@ -7049,6 +7085,12 @@ const getRuntimeConfig = (config) => {
             },
         ],
         logger: config?.logger ?? new smithy_client_1.NoOpLogger(),
+        protocol: config?.protocol ??
+            new protocols_1.AwsJson1_1Protocol({
+                defaultNamespace: "com.amazonaws.codepipeline",
+                serviceTarget: "CodePipeline_20150709",
+                awsQueryCompatible: false,
+            }),
         serviceId: config?.serviceId ?? "CodePipeline",
         urlParser: config?.urlParser ?? url_parser_1.parseUrl,
         utf8Decoder: config?.utf8Decoder ?? util_utf8_1.fromUtf8,
@@ -7073,10 +7115,10 @@ var client = __nccwpck_require__(5152);
 var signatureV4 = __nccwpck_require__(5118);
 var cbor = __nccwpck_require__(4645);
 var schema = __nccwpck_require__(6890);
+var smithyClient = __nccwpck_require__(1411);
 var protocols = __nccwpck_require__(3422);
 var serde = __nccwpck_require__(2430);
 var utilBase64 = __nccwpck_require__(8385);
-var smithyClient = __nccwpck_require__(1411);
 var utilUtf8 = __nccwpck_require__(1577);
 var xmlBuilder = __nccwpck_require__(4274);
 
@@ -7406,6 +7448,10 @@ function bindCallerConfig(config, credentialsProvider) {
 }
 
 class ProtocolLib {
+    queryCompat;
+    constructor(queryCompat = false) {
+        this.queryCompat = queryCompat;
+    }
     resolveRestContentType(defaultContentType, inputSchema) {
         const members = inputSchema.getMemberSchemas();
         const httpPayloadMember = Object.values(members).find((m) => {
@@ -7445,7 +7491,6 @@ class ProtocolLib {
         }
         const errorMetadata = {
             $metadata: metadata,
-            $response: response,
             $fault: response.statusCode < 500 ? "client" : "server",
         };
         const registry = schema.TypeRegistry.for(namespace);
@@ -7459,10 +7504,22 @@ class ProtocolLib {
             const baseExceptionSchema = synthetic.getBaseException();
             if (baseExceptionSchema) {
                 const ErrorCtor = synthetic.getErrorCtor(baseExceptionSchema) ?? Error;
-                throw Object.assign(new ErrorCtor({ name: errorName }), errorMetadata, dataObject);
+                throw this.decorateServiceException(Object.assign(new ErrorCtor({ name: errorName }), errorMetadata), dataObject);
             }
-            throw Object.assign(new Error(errorName), errorMetadata, dataObject);
+            throw this.decorateServiceException(Object.assign(new Error(errorName), errorMetadata), dataObject);
         }
+    }
+    decorateServiceException(exception, additions = {}) {
+        if (this.queryCompat) {
+            const msg = exception.Message ?? additions.Message;
+            const error = smithyClient.decorateServiceException(exception, additions);
+            if (msg) {
+                error.Message = msg;
+                error.message = msg;
+            }
+            return error;
+        }
+        return smithyClient.decorateServiceException(exception, additions);
     }
     setQueryCompatError(output, response) {
         const queryErrorHeader = response.headers?.["x-amzn-query-error"];
@@ -7496,10 +7553,11 @@ class ProtocolLib {
 
 class AwsSmithyRpcV2CborProtocol extends cbor.SmithyRpcV2CborProtocol {
     awsQueryCompatible;
-    mixin = new ProtocolLib();
+    mixin;
     constructor({ defaultNamespace, awsQueryCompatible, }) {
         super({ defaultNamespace });
         this.awsQueryCompatible = !!awsQueryCompatible;
+        this.mixin = new ProtocolLib(this.awsQueryCompatible);
     }
     async serializeRequest(operationSchema, input, context) {
         const request = await super.serializeRequest(operationSchema, input, context);
@@ -7516,7 +7574,7 @@ class AwsSmithyRpcV2CborProtocol extends cbor.SmithyRpcV2CborProtocol {
         const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorName, this.options.defaultNamespace, response, dataObject, metadata);
         const ns = schema.NormalizedSchema.of(errorSchema);
         const message = dataObject.message ?? dataObject.Message ?? "Unknown";
-        const ErrorCtor = schema.TypeRegistry.for(errorSchema.namespace).getErrorCtor(errorSchema) ?? Error;
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
         const exception = new ErrorCtor(message);
         const output = {};
         for (const [name, member] of ns.structIterator()) {
@@ -7525,10 +7583,10 @@ class AwsSmithyRpcV2CborProtocol extends cbor.SmithyRpcV2CborProtocol {
         if (this.awsQueryCompatible) {
             this.mixin.queryCompatOutput(dataObject, output);
         }
-        throw Object.assign(exception, errorMetadata, {
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
             $fault: ns.getMergedTraits().error,
             message,
-        }, output);
+        }, output), dataObject);
     }
 }
 
@@ -7896,10 +7954,7 @@ class JsonShapeSerializer extends SerdeContextConfig {
             if (ns === this.rootSchema) {
                 return value;
             }
-            if (!this.serdeContext?.base64Encoder) {
-                return utilBase64.toBase64(value);
-            }
-            return this.serdeContext?.base64Encoder(value);
+            return (this.serdeContext?.base64Encoder ?? utilBase64.toBase64)(value);
         }
         if ((ns.isTimestampSchema() || ns.isDocumentSchema()) && value instanceof Date) {
             const format = protocols.determineTimestampFormat(ns, this.settings);
@@ -7976,7 +8031,7 @@ class AwsJsonRpcProtocol extends protocols.RpcProtocol {
     deserializer;
     serviceTarget;
     codec;
-    mixin = new ProtocolLib();
+    mixin;
     awsQueryCompatible;
     constructor({ defaultNamespace, serviceTarget, awsQueryCompatible, }) {
         super({
@@ -7993,6 +8048,7 @@ class AwsJsonRpcProtocol extends protocols.RpcProtocol {
         this.serializer = this.codec.createSerializer();
         this.deserializer = this.codec.createDeserializer();
         this.awsQueryCompatible = !!awsQueryCompatible;
+        this.mixin = new ProtocolLib(this.awsQueryCompatible);
     }
     async serializeRequest(operationSchema, input, context) {
         const request = await super.serializeRequest(operationSchema, input, context);
@@ -8001,7 +8057,7 @@ class AwsJsonRpcProtocol extends protocols.RpcProtocol {
         }
         Object.assign(request.headers, {
             "content-type": `application/x-amz-json-${this.getJsonRpcVersion()}`,
-            "x-amz-target": `${this.serviceTarget}.${schema.NormalizedSchema.of(operationSchema).getName()}`,
+            "x-amz-target": `${this.serviceTarget}.${operationSchema.name}`,
         });
         if (this.awsQueryCompatible) {
             request.headers["x-amzn-query-mode"] = "true";
@@ -8022,7 +8078,7 @@ class AwsJsonRpcProtocol extends protocols.RpcProtocol {
         const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
         const ns = schema.NormalizedSchema.of(errorSchema);
         const message = dataObject.message ?? dataObject.Message ?? "Unknown";
-        const ErrorCtor = schema.TypeRegistry.for(errorSchema.namespace).getErrorCtor(errorSchema) ?? Error;
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
         const exception = new ErrorCtor(message);
         const output = {};
         for (const [name, member] of ns.structIterator()) {
@@ -8032,10 +8088,10 @@ class AwsJsonRpcProtocol extends protocols.RpcProtocol {
         if (this.awsQueryCompatible) {
             this.mixin.queryCompatOutput(dataObject, output);
         }
-        throw Object.assign(exception, errorMetadata, {
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
             $fault: ns.getMergedTraits().error,
             message,
-        }, output);
+        }, output), dataObject);
     }
 }
 
@@ -8117,17 +8173,27 @@ class AwsRestJsonProtocol extends protocols.HttpBindingProtocol {
                 request.headers["content-type"] = contentType;
             }
         }
-        if (request.headers["content-type"] && !request.body) {
+        if (request.body == null && request.headers["content-type"] === this.getDefaultContentType()) {
             request.body = "{}";
         }
         return request;
+    }
+    async deserializeResponse(operationSchema, context, response) {
+        const output = await super.deserializeResponse(operationSchema, context, response);
+        const outputSchema = schema.NormalizedSchema.of(operationSchema.output);
+        for (const [name, member] of outputSchema.structIterator()) {
+            if (member.getMemberTraits().httpPayload && !(name in output)) {
+                output[name] = null;
+            }
+        }
+        return output;
     }
     async handleError(operationSchema, context, response, dataObject, metadata) {
         const errorIdentifier = loadRestJsonErrorCode(response, dataObject) ?? "Unknown";
         const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
         const ns = schema.NormalizedSchema.of(errorSchema);
         const message = dataObject.message ?? dataObject.Message ?? "Unknown";
-        const ErrorCtor = schema.TypeRegistry.for(errorSchema.namespace).getErrorCtor(errorSchema) ?? Error;
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
         const exception = new ErrorCtor(message);
         await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
         const output = {};
@@ -8135,10 +8201,10 @@ class AwsRestJsonProtocol extends protocols.HttpBindingProtocol {
             const target = member.getMergedTraits().jsonName ?? name;
             output[name] = this.codec.createDeserializer().readObject(member, dataObject[target]);
         }
-        throw Object.assign(exception, errorMetadata, {
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
             $fault: ns.getMergedTraits().error,
             message,
-        }, output);
+        }, output), dataObject);
     }
     getDefaultContentType() {
         return "application/json";
@@ -8535,9 +8601,16 @@ class AwsQueryProtocol extends protocols.RpcProtocol {
             Code: errorData.Code,
             Message: message,
         };
-        const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, errorData, metadata, (registry, errorName) => registry.find((schema$1) => schema.NormalizedSchema.of(schema$1).getMergedTraits().awsQueryError?.[0] === errorName));
+        const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, errorData, metadata, (registry, errorName) => {
+            try {
+                return registry.getSchema(errorName);
+            }
+            catch (e) {
+                return registry.find((schema$1) => schema.NormalizedSchema.of(schema$1).getMergedTraits().awsQueryError?.[0] === errorName);
+            }
+        });
         const ns = schema.NormalizedSchema.of(errorSchema);
-        const ErrorCtor = schema.TypeRegistry.for(errorSchema.namespace).getErrorCtor(errorSchema) ?? Error;
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
         const exception = new ErrorCtor(message);
         const output = {
             Error: errorData.Error,
@@ -8547,10 +8620,10 @@ class AwsQueryProtocol extends protocols.RpcProtocol {
             const value = errorData[target] ?? dataObject[target];
             output[name] = this.deserializer.readSchema(member, value);
         }
-        throw Object.assign(exception, errorMetadata, {
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
             $fault: ns.getMergedTraits().error,
             message,
-        }, output);
+        }, output), dataObject);
     }
     loadQueryErrorCode(output, data) {
         const code = (data.Errors?.[0]?.Error ?? data.Errors?.Error ?? data.Error)?.Code;
@@ -8975,7 +9048,7 @@ class AwsRestXmlProtocol extends protocols.HttpBindingProtocol {
         const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
         const ns = schema.NormalizedSchema.of(errorSchema);
         const message = dataObject.Error?.message ?? dataObject.Error?.Message ?? dataObject.message ?? dataObject.Message ?? "Unknown";
-        const ErrorCtor = schema.TypeRegistry.for(errorSchema.namespace).getErrorCtor(errorSchema) ?? Error;
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
         const exception = new ErrorCtor(message);
         await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
         const output = {};
@@ -8984,10 +9057,10 @@ class AwsRestXmlProtocol extends protocols.HttpBindingProtocol {
             const value = dataObject.Error?.[target] ?? dataObject[target];
             output[name] = this.codec.createDeserializer().readSchema(member, value);
         }
-        throw Object.assign(exception, errorMetadata, {
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
             $fault: ns.getMergedTraits().error,
             message,
-        }, output);
+        }, output), dataObject);
     }
     getDefaultContentType() {
         return "application/xml";
@@ -9096,6 +9169,1669 @@ exports.state = state;
 
 /***/ }),
 
+/***/ 7288:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+var cbor = __nccwpck_require__(4645);
+var schema = __nccwpck_require__(6890);
+var smithyClient = __nccwpck_require__(1411);
+var protocols = __nccwpck_require__(3422);
+var serde = __nccwpck_require__(2430);
+var utilBase64 = __nccwpck_require__(8385);
+var utilUtf8 = __nccwpck_require__(1577);
+var xmlBuilder = __nccwpck_require__(4274);
+
+class ProtocolLib {
+    queryCompat;
+    constructor(queryCompat = false) {
+        this.queryCompat = queryCompat;
+    }
+    resolveRestContentType(defaultContentType, inputSchema) {
+        const members = inputSchema.getMemberSchemas();
+        const httpPayloadMember = Object.values(members).find((m) => {
+            return !!m.getMergedTraits().httpPayload;
+        });
+        if (httpPayloadMember) {
+            const mediaType = httpPayloadMember.getMergedTraits().mediaType;
+            if (mediaType) {
+                return mediaType;
+            }
+            else if (httpPayloadMember.isStringSchema()) {
+                return "text/plain";
+            }
+            else if (httpPayloadMember.isBlobSchema()) {
+                return "application/octet-stream";
+            }
+            else {
+                return defaultContentType;
+            }
+        }
+        else if (!inputSchema.isUnitSchema()) {
+            const hasBody = Object.values(members).find((m) => {
+                const { httpQuery, httpQueryParams, httpHeader, httpLabel, httpPrefixHeaders } = m.getMergedTraits();
+                const noPrefixHeaders = httpPrefixHeaders === void 0;
+                return !httpQuery && !httpQueryParams && !httpHeader && !httpLabel && noPrefixHeaders;
+            });
+            if (hasBody) {
+                return defaultContentType;
+            }
+        }
+    }
+    async getErrorSchemaOrThrowBaseException(errorIdentifier, defaultNamespace, response, dataObject, metadata, getErrorSchema) {
+        let namespace = defaultNamespace;
+        let errorName = errorIdentifier;
+        if (errorIdentifier.includes("#")) {
+            [namespace, errorName] = errorIdentifier.split("#");
+        }
+        const errorMetadata = {
+            $metadata: metadata,
+            $fault: response.statusCode < 500 ? "client" : "server",
+        };
+        const registry = schema.TypeRegistry.for(namespace);
+        try {
+            const errorSchema = getErrorSchema?.(registry, errorName) ?? registry.getSchema(errorIdentifier);
+            return { errorSchema, errorMetadata };
+        }
+        catch (e) {
+            dataObject.message = dataObject.message ?? dataObject.Message ?? "UnknownError";
+            const synthetic = schema.TypeRegistry.for("smithy.ts.sdk.synthetic." + namespace);
+            const baseExceptionSchema = synthetic.getBaseException();
+            if (baseExceptionSchema) {
+                const ErrorCtor = synthetic.getErrorCtor(baseExceptionSchema) ?? Error;
+                throw this.decorateServiceException(Object.assign(new ErrorCtor({ name: errorName }), errorMetadata), dataObject);
+            }
+            throw this.decorateServiceException(Object.assign(new Error(errorName), errorMetadata), dataObject);
+        }
+    }
+    decorateServiceException(exception, additions = {}) {
+        if (this.queryCompat) {
+            const msg = exception.Message ?? additions.Message;
+            const error = smithyClient.decorateServiceException(exception, additions);
+            if (msg) {
+                error.Message = msg;
+                error.message = msg;
+            }
+            return error;
+        }
+        return smithyClient.decorateServiceException(exception, additions);
+    }
+    setQueryCompatError(output, response) {
+        const queryErrorHeader = response.headers?.["x-amzn-query-error"];
+        if (output !== undefined && queryErrorHeader != null) {
+            const [Code, Type] = queryErrorHeader.split(";");
+            const entries = Object.entries(output);
+            const Error = {
+                Code,
+                Type,
+            };
+            Object.assign(output, Error);
+            for (const [k, v] of entries) {
+                Error[k] = v;
+            }
+            delete Error.__type;
+            output.Error = Error;
+        }
+    }
+    queryCompatOutput(queryCompatErrorData, errorData) {
+        if (queryCompatErrorData.Error) {
+            errorData.Error = queryCompatErrorData.Error;
+        }
+        if (queryCompatErrorData.Type) {
+            errorData.Type = queryCompatErrorData.Type;
+        }
+        if (queryCompatErrorData.Code) {
+            errorData.Code = queryCompatErrorData.Code;
+        }
+    }
+}
+
+class AwsSmithyRpcV2CborProtocol extends cbor.SmithyRpcV2CborProtocol {
+    awsQueryCompatible;
+    mixin;
+    constructor({ defaultNamespace, awsQueryCompatible, }) {
+        super({ defaultNamespace });
+        this.awsQueryCompatible = !!awsQueryCompatible;
+        this.mixin = new ProtocolLib(this.awsQueryCompatible);
+    }
+    async serializeRequest(operationSchema, input, context) {
+        const request = await super.serializeRequest(operationSchema, input, context);
+        if (this.awsQueryCompatible) {
+            request.headers["x-amzn-query-mode"] = "true";
+        }
+        return request;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+        if (this.awsQueryCompatible) {
+            this.mixin.setQueryCompatError(dataObject, response);
+        }
+        const errorName = cbor.loadSmithyRpcV2CborErrorCode(response, dataObject) ?? "Unknown";
+        const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorName, this.options.defaultNamespace, response, dataObject, metadata);
+        const ns = schema.NormalizedSchema.of(errorSchema);
+        const message = dataObject.message ?? dataObject.Message ?? "Unknown";
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
+        const exception = new ErrorCtor(message);
+        const output = {};
+        for (const [name, member] of ns.structIterator()) {
+            output[name] = this.deserializer.readValue(member, dataObject[name]);
+        }
+        if (this.awsQueryCompatible) {
+            this.mixin.queryCompatOutput(dataObject, output);
+        }
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+            $fault: ns.getMergedTraits().error,
+            message,
+        }, output), dataObject);
+    }
+}
+
+const _toStr = (val) => {
+    if (val == null) {
+        return val;
+    }
+    if (typeof val === "number" || typeof val === "bigint") {
+        const warning = new Error(`Received number ${val} where a string was expected.`);
+        warning.name = "Warning";
+        console.warn(warning);
+        return String(val);
+    }
+    if (typeof val === "boolean") {
+        const warning = new Error(`Received boolean ${val} where a string was expected.`);
+        warning.name = "Warning";
+        console.warn(warning);
+        return String(val);
+    }
+    return val;
+};
+const _toBool = (val) => {
+    if (val == null) {
+        return val;
+    }
+    if (typeof val === "string") {
+        const lowercase = val.toLowerCase();
+        if (val !== "" && lowercase !== "false" && lowercase !== "true") {
+            const warning = new Error(`Received string "${val}" where a boolean was expected.`);
+            warning.name = "Warning";
+            console.warn(warning);
+        }
+        return val !== "" && lowercase !== "false";
+    }
+    return val;
+};
+const _toNum = (val) => {
+    if (val == null) {
+        return val;
+    }
+    if (typeof val === "string") {
+        const num = Number(val);
+        if (num.toString() !== val) {
+            const warning = new Error(`Received string "${val}" where a number was expected.`);
+            warning.name = "Warning";
+            console.warn(warning);
+            return val;
+        }
+        return num;
+    }
+    return val;
+};
+
+class SerdeContextConfig {
+    serdeContext;
+    setSerdeContext(serdeContext) {
+        this.serdeContext = serdeContext;
+    }
+}
+
+function jsonReviver(key, value, context) {
+    if (context?.source) {
+        const numericString = context.source;
+        if (typeof value === "number") {
+            if (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER || numericString !== String(value)) {
+                const isFractional = numericString.includes(".");
+                if (isFractional) {
+                    return new serde.NumericValue(numericString, "bigDecimal");
+                }
+                else {
+                    return BigInt(numericString);
+                }
+            }
+        }
+    }
+    return value;
+}
+
+const collectBodyString = (streamBody, context) => smithyClient.collectBody(streamBody, context).then((body) => (context?.utf8Encoder ?? utilUtf8.toUtf8)(body));
+
+const parseJsonBody = (streamBody, context) => collectBodyString(streamBody, context).then((encoded) => {
+    if (encoded.length) {
+        try {
+            return JSON.parse(encoded);
+        }
+        catch (e) {
+            if (e?.name === "SyntaxError") {
+                Object.defineProperty(e, "$responseBodyText", {
+                    value: encoded,
+                });
+            }
+            throw e;
+        }
+    }
+    return {};
+});
+const parseJsonErrorBody = async (errorBody, context) => {
+    const value = await parseJsonBody(errorBody, context);
+    value.message = value.message ?? value.Message;
+    return value;
+};
+const loadRestJsonErrorCode = (output, data) => {
+    const findKey = (object, key) => Object.keys(object).find((k) => k.toLowerCase() === key.toLowerCase());
+    const sanitizeErrorCode = (rawValue) => {
+        let cleanValue = rawValue;
+        if (typeof cleanValue === "number") {
+            cleanValue = cleanValue.toString();
+        }
+        if (cleanValue.indexOf(",") >= 0) {
+            cleanValue = cleanValue.split(",")[0];
+        }
+        if (cleanValue.indexOf(":") >= 0) {
+            cleanValue = cleanValue.split(":")[0];
+        }
+        if (cleanValue.indexOf("#") >= 0) {
+            cleanValue = cleanValue.split("#")[1];
+        }
+        return cleanValue;
+    };
+    const headerKey = findKey(output.headers, "x-amzn-errortype");
+    if (headerKey !== undefined) {
+        return sanitizeErrorCode(output.headers[headerKey]);
+    }
+    if (data && typeof data === "object") {
+        const codeKey = findKey(data, "code");
+        if (codeKey && data[codeKey] !== undefined) {
+            return sanitizeErrorCode(data[codeKey]);
+        }
+        if (data["__type"] !== undefined) {
+            return sanitizeErrorCode(data["__type"]);
+        }
+    }
+};
+
+class JsonShapeDeserializer extends SerdeContextConfig {
+    settings;
+    constructor(settings) {
+        super();
+        this.settings = settings;
+    }
+    async read(schema, data) {
+        return this._read(schema, typeof data === "string" ? JSON.parse(data, jsonReviver) : await parseJsonBody(data, this.serdeContext));
+    }
+    readObject(schema, data) {
+        return this._read(schema, data);
+    }
+    _read(schema$1, value) {
+        const isObject = value !== null && typeof value === "object";
+        const ns = schema.NormalizedSchema.of(schema$1);
+        if (ns.isListSchema() && Array.isArray(value)) {
+            const listMember = ns.getValueSchema();
+            const out = [];
+            const sparse = !!ns.getMergedTraits().sparse;
+            for (const item of value) {
+                if (sparse || item != null) {
+                    out.push(this._read(listMember, item));
+                }
+            }
+            return out;
+        }
+        else if (ns.isMapSchema() && isObject) {
+            const mapMember = ns.getValueSchema();
+            const out = {};
+            const sparse = !!ns.getMergedTraits().sparse;
+            for (const [_k, _v] of Object.entries(value)) {
+                if (sparse || _v != null) {
+                    out[_k] = this._read(mapMember, _v);
+                }
+            }
+            return out;
+        }
+        else if (ns.isStructSchema() && isObject) {
+            const out = {};
+            for (const [memberName, memberSchema] of ns.structIterator()) {
+                const fromKey = this.settings.jsonName ? memberSchema.getMergedTraits().jsonName ?? memberName : memberName;
+                const deserializedValue = this._read(memberSchema, value[fromKey]);
+                if (deserializedValue != null) {
+                    out[memberName] = deserializedValue;
+                }
+            }
+            return out;
+        }
+        if (ns.isBlobSchema() && typeof value === "string") {
+            return utilBase64.fromBase64(value);
+        }
+        const mediaType = ns.getMergedTraits().mediaType;
+        if (ns.isStringSchema() && typeof value === "string" && mediaType) {
+            const isJson = mediaType === "application/json" || mediaType.endsWith("+json");
+            if (isJson) {
+                return serde.LazyJsonString.from(value);
+            }
+        }
+        if (ns.isTimestampSchema() && value != null) {
+            const format = protocols.determineTimestampFormat(ns, this.settings);
+            switch (format) {
+                case 5:
+                    return serde.parseRfc3339DateTimeWithOffset(value);
+                case 6:
+                    return serde.parseRfc7231DateTime(value);
+                case 7:
+                    return serde.parseEpochTimestamp(value);
+                default:
+                    console.warn("Missing timestamp format, parsing value with Date constructor:", value);
+                    return new Date(value);
+            }
+        }
+        if (ns.isBigIntegerSchema() && (typeof value === "number" || typeof value === "string")) {
+            return BigInt(value);
+        }
+        if (ns.isBigDecimalSchema() && value != undefined) {
+            if (value instanceof serde.NumericValue) {
+                return value;
+            }
+            const untyped = value;
+            if (untyped.type === "bigDecimal" && "string" in untyped) {
+                return new serde.NumericValue(untyped.string, untyped.type);
+            }
+            return new serde.NumericValue(String(value), "bigDecimal");
+        }
+        if (ns.isNumericSchema() && typeof value === "string") {
+            switch (value) {
+                case "Infinity":
+                    return Infinity;
+                case "-Infinity":
+                    return -Infinity;
+                case "NaN":
+                    return NaN;
+            }
+        }
+        if (ns.isDocumentSchema()) {
+            if (isObject) {
+                const out = Array.isArray(value) ? [] : {};
+                for (const [k, v] of Object.entries(value)) {
+                    if (v instanceof serde.NumericValue) {
+                        out[k] = v;
+                    }
+                    else {
+                        out[k] = this._read(ns, v);
+                    }
+                }
+                return out;
+            }
+            else {
+                return structuredClone(value);
+            }
+        }
+        return value;
+    }
+}
+
+const NUMERIC_CONTROL_CHAR = String.fromCharCode(925);
+class JsonReplacer {
+    values = new Map();
+    counter = 0;
+    stage = 0;
+    createReplacer() {
+        if (this.stage === 1) {
+            throw new Error("@aws-sdk/core/protocols - JsonReplacer already created.");
+        }
+        if (this.stage === 2) {
+            throw new Error("@aws-sdk/core/protocols - JsonReplacer exhausted.");
+        }
+        this.stage = 1;
+        return (key, value) => {
+            if (value instanceof serde.NumericValue) {
+                const v = `${NUMERIC_CONTROL_CHAR + "nv" + this.counter++}_` + value.string;
+                this.values.set(`"${v}"`, value.string);
+                return v;
+            }
+            if (typeof value === "bigint") {
+                const s = value.toString();
+                const v = `${NUMERIC_CONTROL_CHAR + "b" + this.counter++}_` + s;
+                this.values.set(`"${v}"`, s);
+                return v;
+            }
+            return value;
+        };
+    }
+    replaceInJson(json) {
+        if (this.stage === 0) {
+            throw new Error("@aws-sdk/core/protocols - JsonReplacer not created yet.");
+        }
+        if (this.stage === 2) {
+            throw new Error("@aws-sdk/core/protocols - JsonReplacer exhausted.");
+        }
+        this.stage = 2;
+        if (this.counter === 0) {
+            return json;
+        }
+        for (const [key, value] of this.values) {
+            json = json.replace(key, value);
+        }
+        return json;
+    }
+}
+
+class JsonShapeSerializer extends SerdeContextConfig {
+    settings;
+    buffer;
+    rootSchema;
+    constructor(settings) {
+        super();
+        this.settings = settings;
+    }
+    write(schema$1, value) {
+        this.rootSchema = schema.NormalizedSchema.of(schema$1);
+        this.buffer = this._write(this.rootSchema, value);
+    }
+    writeDiscriminatedDocument(schema$1, value) {
+        this.write(schema$1, value);
+        if (typeof this.buffer === "object") {
+            this.buffer.__type = schema.NormalizedSchema.of(schema$1).getName(true);
+        }
+    }
+    flush() {
+        const { rootSchema } = this;
+        this.rootSchema = undefined;
+        if (rootSchema?.isStructSchema() || rootSchema?.isDocumentSchema()) {
+            const replacer = new JsonReplacer();
+            return replacer.replaceInJson(JSON.stringify(this.buffer, replacer.createReplacer(), 0));
+        }
+        return this.buffer;
+    }
+    _write(schema$1, value, container) {
+        const isObject = value !== null && typeof value === "object";
+        const ns = schema.NormalizedSchema.of(schema$1);
+        if (ns.isListSchema() && Array.isArray(value)) {
+            const listMember = ns.getValueSchema();
+            const out = [];
+            const sparse = !!ns.getMergedTraits().sparse;
+            for (const item of value) {
+                if (sparse || item != null) {
+                    out.push(this._write(listMember, item));
+                }
+            }
+            return out;
+        }
+        else if (ns.isMapSchema() && isObject) {
+            const mapMember = ns.getValueSchema();
+            const out = {};
+            const sparse = !!ns.getMergedTraits().sparse;
+            for (const [_k, _v] of Object.entries(value)) {
+                if (sparse || _v != null) {
+                    out[_k] = this._write(mapMember, _v);
+                }
+            }
+            return out;
+        }
+        else if (ns.isStructSchema() && isObject) {
+            const out = {};
+            for (const [memberName, memberSchema] of ns.structIterator()) {
+                const targetKey = this.settings.jsonName ? memberSchema.getMergedTraits().jsonName ?? memberName : memberName;
+                const serializableValue = this._write(memberSchema, value[memberName], ns);
+                if (serializableValue !== undefined) {
+                    out[targetKey] = serializableValue;
+                }
+            }
+            return out;
+        }
+        if (value === null && container?.isStructSchema()) {
+            return void 0;
+        }
+        if ((ns.isBlobSchema() && (value instanceof Uint8Array || typeof value === "string")) ||
+            (ns.isDocumentSchema() && value instanceof Uint8Array)) {
+            if (ns === this.rootSchema) {
+                return value;
+            }
+            return (this.serdeContext?.base64Encoder ?? utilBase64.toBase64)(value);
+        }
+        if ((ns.isTimestampSchema() || ns.isDocumentSchema()) && value instanceof Date) {
+            const format = protocols.determineTimestampFormat(ns, this.settings);
+            switch (format) {
+                case 5:
+                    return value.toISOString().replace(".000Z", "Z");
+                case 6:
+                    return serde.dateToUtcString(value);
+                case 7:
+                    return value.getTime() / 1000;
+                default:
+                    console.warn("Missing timestamp format, using epoch seconds", value);
+                    return value.getTime() / 1000;
+            }
+        }
+        if (ns.isNumericSchema() && typeof value === "number") {
+            if (Math.abs(value) === Infinity || isNaN(value)) {
+                return String(value);
+            }
+        }
+        if (ns.isStringSchema()) {
+            if (typeof value === "undefined" && ns.isIdempotencyToken()) {
+                return serde.generateIdempotencyToken();
+            }
+            const mediaType = ns.getMergedTraits().mediaType;
+            if (value != null && mediaType) {
+                const isJson = mediaType === "application/json" || mediaType.endsWith("+json");
+                if (isJson) {
+                    return serde.LazyJsonString.from(value);
+                }
+            }
+        }
+        if (ns.isDocumentSchema()) {
+            if (isObject) {
+                const out = Array.isArray(value) ? [] : {};
+                for (const [k, v] of Object.entries(value)) {
+                    if (v instanceof serde.NumericValue) {
+                        out[k] = v;
+                    }
+                    else {
+                        out[k] = this._write(ns, v);
+                    }
+                }
+                return out;
+            }
+            else {
+                return structuredClone(value);
+            }
+        }
+        return value;
+    }
+}
+
+class JsonCodec extends SerdeContextConfig {
+    settings;
+    constructor(settings) {
+        super();
+        this.settings = settings;
+    }
+    createSerializer() {
+        const serializer = new JsonShapeSerializer(this.settings);
+        serializer.setSerdeContext(this.serdeContext);
+        return serializer;
+    }
+    createDeserializer() {
+        const deserializer = new JsonShapeDeserializer(this.settings);
+        deserializer.setSerdeContext(this.serdeContext);
+        return deserializer;
+    }
+}
+
+class AwsJsonRpcProtocol extends protocols.RpcProtocol {
+    serializer;
+    deserializer;
+    serviceTarget;
+    codec;
+    mixin;
+    awsQueryCompatible;
+    constructor({ defaultNamespace, serviceTarget, awsQueryCompatible, }) {
+        super({
+            defaultNamespace,
+        });
+        this.serviceTarget = serviceTarget;
+        this.codec = new JsonCodec({
+            timestampFormat: {
+                useTrait: true,
+                default: 7,
+            },
+            jsonName: false,
+        });
+        this.serializer = this.codec.createSerializer();
+        this.deserializer = this.codec.createDeserializer();
+        this.awsQueryCompatible = !!awsQueryCompatible;
+        this.mixin = new ProtocolLib(this.awsQueryCompatible);
+    }
+    async serializeRequest(operationSchema, input, context) {
+        const request = await super.serializeRequest(operationSchema, input, context);
+        if (!request.path.endsWith("/")) {
+            request.path += "/";
+        }
+        Object.assign(request.headers, {
+            "content-type": `application/x-amz-json-${this.getJsonRpcVersion()}`,
+            "x-amz-target": `${this.serviceTarget}.${operationSchema.name}`,
+        });
+        if (this.awsQueryCompatible) {
+            request.headers["x-amzn-query-mode"] = "true";
+        }
+        if (schema.deref(operationSchema.input) === "unit" || !request.body) {
+            request.body = "{}";
+        }
+        return request;
+    }
+    getPayloadCodec() {
+        return this.codec;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+        if (this.awsQueryCompatible) {
+            this.mixin.setQueryCompatError(dataObject, response);
+        }
+        const errorIdentifier = loadRestJsonErrorCode(response, dataObject) ?? "Unknown";
+        const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
+        const ns = schema.NormalizedSchema.of(errorSchema);
+        const message = dataObject.message ?? dataObject.Message ?? "Unknown";
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
+        const exception = new ErrorCtor(message);
+        const output = {};
+        for (const [name, member] of ns.structIterator()) {
+            const target = member.getMergedTraits().jsonName ?? name;
+            output[name] = this.codec.createDeserializer().readObject(member, dataObject[target]);
+        }
+        if (this.awsQueryCompatible) {
+            this.mixin.queryCompatOutput(dataObject, output);
+        }
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+            $fault: ns.getMergedTraits().error,
+            message,
+        }, output), dataObject);
+    }
+}
+
+class AwsJson1_0Protocol extends AwsJsonRpcProtocol {
+    constructor({ defaultNamespace, serviceTarget, awsQueryCompatible, }) {
+        super({
+            defaultNamespace,
+            serviceTarget,
+            awsQueryCompatible,
+        });
+    }
+    getShapeId() {
+        return "aws.protocols#awsJson1_0";
+    }
+    getJsonRpcVersion() {
+        return "1.0";
+    }
+    getDefaultContentType() {
+        return "application/x-amz-json-1.0";
+    }
+}
+
+class AwsJson1_1Protocol extends AwsJsonRpcProtocol {
+    constructor({ defaultNamespace, serviceTarget, awsQueryCompatible, }) {
+        super({
+            defaultNamespace,
+            serviceTarget,
+            awsQueryCompatible,
+        });
+    }
+    getShapeId() {
+        return "aws.protocols#awsJson1_1";
+    }
+    getJsonRpcVersion() {
+        return "1.1";
+    }
+    getDefaultContentType() {
+        return "application/x-amz-json-1.1";
+    }
+}
+
+class AwsRestJsonProtocol extends protocols.HttpBindingProtocol {
+    serializer;
+    deserializer;
+    codec;
+    mixin = new ProtocolLib();
+    constructor({ defaultNamespace }) {
+        super({
+            defaultNamespace,
+        });
+        const settings = {
+            timestampFormat: {
+                useTrait: true,
+                default: 7,
+            },
+            httpBindings: true,
+            jsonName: true,
+        };
+        this.codec = new JsonCodec(settings);
+        this.serializer = new protocols.HttpInterceptingShapeSerializer(this.codec.createSerializer(), settings);
+        this.deserializer = new protocols.HttpInterceptingShapeDeserializer(this.codec.createDeserializer(), settings);
+    }
+    getShapeId() {
+        return "aws.protocols#restJson1";
+    }
+    getPayloadCodec() {
+        return this.codec;
+    }
+    setSerdeContext(serdeContext) {
+        this.codec.setSerdeContext(serdeContext);
+        super.setSerdeContext(serdeContext);
+    }
+    async serializeRequest(operationSchema, input, context) {
+        const request = await super.serializeRequest(operationSchema, input, context);
+        const inputSchema = schema.NormalizedSchema.of(operationSchema.input);
+        if (!request.headers["content-type"]) {
+            const contentType = this.mixin.resolveRestContentType(this.getDefaultContentType(), inputSchema);
+            if (contentType) {
+                request.headers["content-type"] = contentType;
+            }
+        }
+        if (request.body == null && request.headers["content-type"] === this.getDefaultContentType()) {
+            request.body = "{}";
+        }
+        return request;
+    }
+    async deserializeResponse(operationSchema, context, response) {
+        const output = await super.deserializeResponse(operationSchema, context, response);
+        const outputSchema = schema.NormalizedSchema.of(operationSchema.output);
+        for (const [name, member] of outputSchema.structIterator()) {
+            if (member.getMemberTraits().httpPayload && !(name in output)) {
+                output[name] = null;
+            }
+        }
+        return output;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+        const errorIdentifier = loadRestJsonErrorCode(response, dataObject) ?? "Unknown";
+        const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
+        const ns = schema.NormalizedSchema.of(errorSchema);
+        const message = dataObject.message ?? dataObject.Message ?? "Unknown";
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
+        const exception = new ErrorCtor(message);
+        await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
+        const output = {};
+        for (const [name, member] of ns.structIterator()) {
+            const target = member.getMergedTraits().jsonName ?? name;
+            output[name] = this.codec.createDeserializer().readObject(member, dataObject[target]);
+        }
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+            $fault: ns.getMergedTraits().error,
+            message,
+        }, output), dataObject);
+    }
+    getDefaultContentType() {
+        return "application/json";
+    }
+}
+
+const awsExpectUnion = (value) => {
+    if (value == null) {
+        return undefined;
+    }
+    if (typeof value === "object" && "__type" in value) {
+        delete value.__type;
+    }
+    return smithyClient.expectUnion(value);
+};
+
+class XmlShapeDeserializer extends SerdeContextConfig {
+    settings;
+    stringDeserializer;
+    constructor(settings) {
+        super();
+        this.settings = settings;
+        this.stringDeserializer = new protocols.FromStringShapeDeserializer(settings);
+    }
+    setSerdeContext(serdeContext) {
+        this.serdeContext = serdeContext;
+        this.stringDeserializer.setSerdeContext(serdeContext);
+    }
+    read(schema$1, bytes, key) {
+        const ns = schema.NormalizedSchema.of(schema$1);
+        const memberSchemas = ns.getMemberSchemas();
+        const isEventPayload = ns.isStructSchema() &&
+            ns.isMemberSchema() &&
+            !!Object.values(memberSchemas).find((memberNs) => {
+                return !!memberNs.getMemberTraits().eventPayload;
+            });
+        if (isEventPayload) {
+            const output = {};
+            const memberName = Object.keys(memberSchemas)[0];
+            const eventMemberSchema = memberSchemas[memberName];
+            if (eventMemberSchema.isBlobSchema()) {
+                output[memberName] = bytes;
+            }
+            else {
+                output[memberName] = this.read(memberSchemas[memberName], bytes);
+            }
+            return output;
+        }
+        const xmlString = (this.serdeContext?.utf8Encoder ?? utilUtf8.toUtf8)(bytes);
+        const parsedObject = this.parseXml(xmlString);
+        return this.readSchema(schema$1, key ? parsedObject[key] : parsedObject);
+    }
+    readSchema(_schema, value) {
+        const ns = schema.NormalizedSchema.of(_schema);
+        if (ns.isUnitSchema()) {
+            return;
+        }
+        const traits = ns.getMergedTraits();
+        if (ns.isListSchema() && !Array.isArray(value)) {
+            return this.readSchema(ns, [value]);
+        }
+        if (value == null) {
+            return value;
+        }
+        if (typeof value === "object") {
+            const sparse = !!traits.sparse;
+            const flat = !!traits.xmlFlattened;
+            if (ns.isListSchema()) {
+                const listValue = ns.getValueSchema();
+                const buffer = [];
+                const sourceKey = listValue.getMergedTraits().xmlName ?? "member";
+                const source = flat ? value : (value[0] ?? value)[sourceKey];
+                const sourceArray = Array.isArray(source) ? source : [source];
+                for (const v of sourceArray) {
+                    if (v != null || sparse) {
+                        buffer.push(this.readSchema(listValue, v));
+                    }
+                }
+                return buffer;
+            }
+            const buffer = {};
+            if (ns.isMapSchema()) {
+                const keyNs = ns.getKeySchema();
+                const memberNs = ns.getValueSchema();
+                let entries;
+                if (flat) {
+                    entries = Array.isArray(value) ? value : [value];
+                }
+                else {
+                    entries = Array.isArray(value.entry) ? value.entry : [value.entry];
+                }
+                const keyProperty = keyNs.getMergedTraits().xmlName ?? "key";
+                const valueProperty = memberNs.getMergedTraits().xmlName ?? "value";
+                for (const entry of entries) {
+                    const key = entry[keyProperty];
+                    const value = entry[valueProperty];
+                    if (value != null || sparse) {
+                        buffer[key] = this.readSchema(memberNs, value);
+                    }
+                }
+                return buffer;
+            }
+            if (ns.isStructSchema()) {
+                for (const [memberName, memberSchema] of ns.structIterator()) {
+                    const memberTraits = memberSchema.getMergedTraits();
+                    const xmlObjectKey = !memberTraits.httpPayload
+                        ? memberSchema.getMemberTraits().xmlName ?? memberName
+                        : memberTraits.xmlName ?? memberSchema.getName();
+                    if (value[xmlObjectKey] != null) {
+                        buffer[memberName] = this.readSchema(memberSchema, value[xmlObjectKey]);
+                    }
+                }
+                return buffer;
+            }
+            if (ns.isDocumentSchema()) {
+                return value;
+            }
+            throw new Error(`@aws-sdk/core/protocols - xml deserializer unhandled schema type for ${ns.getName(true)}`);
+        }
+        if (ns.isListSchema()) {
+            return [];
+        }
+        if (ns.isMapSchema() || ns.isStructSchema()) {
+            return {};
+        }
+        return this.stringDeserializer.read(ns, value);
+    }
+    parseXml(xml) {
+        if (xml.length) {
+            let parsedObj;
+            try {
+                parsedObj = xmlBuilder.parseXML(xml);
+            }
+            catch (e) {
+                if (e && typeof e === "object") {
+                    Object.defineProperty(e, "$responseBodyText", {
+                        value: xml,
+                    });
+                }
+                throw e;
+            }
+            const textNodeName = "#text";
+            const key = Object.keys(parsedObj)[0];
+            const parsedObjToReturn = parsedObj[key];
+            if (parsedObjToReturn[textNodeName]) {
+                parsedObjToReturn[key] = parsedObjToReturn[textNodeName];
+                delete parsedObjToReturn[textNodeName];
+            }
+            return smithyClient.getValueFromTextNode(parsedObjToReturn);
+        }
+        return {};
+    }
+}
+
+class QueryShapeSerializer extends SerdeContextConfig {
+    settings;
+    buffer;
+    constructor(settings) {
+        super();
+        this.settings = settings;
+    }
+    write(schema$1, value, prefix = "") {
+        if (this.buffer === undefined) {
+            this.buffer = "";
+        }
+        const ns = schema.NormalizedSchema.of(schema$1);
+        if (prefix && !prefix.endsWith(".")) {
+            prefix += ".";
+        }
+        if (ns.isBlobSchema()) {
+            if (typeof value === "string" || value instanceof Uint8Array) {
+                this.writeKey(prefix);
+                this.writeValue((this.serdeContext?.base64Encoder ?? utilBase64.toBase64)(value));
+            }
+        }
+        else if (ns.isBooleanSchema() || ns.isNumericSchema() || ns.isStringSchema()) {
+            if (value != null) {
+                this.writeKey(prefix);
+                this.writeValue(String(value));
+            }
+            else if (ns.isIdempotencyToken()) {
+                this.writeKey(prefix);
+                this.writeValue(serde.generateIdempotencyToken());
+            }
+        }
+        else if (ns.isBigIntegerSchema()) {
+            if (value != null) {
+                this.writeKey(prefix);
+                this.writeValue(String(value));
+            }
+        }
+        else if (ns.isBigDecimalSchema()) {
+            if (value != null) {
+                this.writeKey(prefix);
+                this.writeValue(value instanceof serde.NumericValue ? value.string : String(value));
+            }
+        }
+        else if (ns.isTimestampSchema()) {
+            if (value instanceof Date) {
+                this.writeKey(prefix);
+                const format = protocols.determineTimestampFormat(ns, this.settings);
+                switch (format) {
+                    case 5:
+                        this.writeValue(value.toISOString().replace(".000Z", "Z"));
+                        break;
+                    case 6:
+                        this.writeValue(smithyClient.dateToUtcString(value));
+                        break;
+                    case 7:
+                        this.writeValue(String(value.getTime() / 1000));
+                        break;
+                }
+            }
+        }
+        else if (ns.isDocumentSchema()) {
+            throw new Error(`@aws-sdk/core/protocols - QuerySerializer unsupported document type ${ns.getName(true)}`);
+        }
+        else if (ns.isListSchema()) {
+            if (Array.isArray(value)) {
+                if (value.length === 0) {
+                    if (this.settings.serializeEmptyLists) {
+                        this.writeKey(prefix);
+                        this.writeValue("");
+                    }
+                }
+                else {
+                    const member = ns.getValueSchema();
+                    const flat = this.settings.flattenLists || ns.getMergedTraits().xmlFlattened;
+                    let i = 1;
+                    for (const item of value) {
+                        if (item == null) {
+                            continue;
+                        }
+                        const suffix = this.getKey("member", member.getMergedTraits().xmlName);
+                        const key = flat ? `${prefix}${i}` : `${prefix}${suffix}.${i}`;
+                        this.write(member, item, key);
+                        ++i;
+                    }
+                }
+            }
+        }
+        else if (ns.isMapSchema()) {
+            if (value && typeof value === "object") {
+                const keySchema = ns.getKeySchema();
+                const memberSchema = ns.getValueSchema();
+                const flat = ns.getMergedTraits().xmlFlattened;
+                let i = 1;
+                for (const [k, v] of Object.entries(value)) {
+                    if (v == null) {
+                        continue;
+                    }
+                    const keySuffix = this.getKey("key", keySchema.getMergedTraits().xmlName);
+                    const key = flat ? `${prefix}${i}.${keySuffix}` : `${prefix}entry.${i}.${keySuffix}`;
+                    const valueSuffix = this.getKey("value", memberSchema.getMergedTraits().xmlName);
+                    const valueKey = flat ? `${prefix}${i}.${valueSuffix}` : `${prefix}entry.${i}.${valueSuffix}`;
+                    this.write(keySchema, k, key);
+                    this.write(memberSchema, v, valueKey);
+                    ++i;
+                }
+            }
+        }
+        else if (ns.isStructSchema()) {
+            if (value && typeof value === "object") {
+                for (const [memberName, member] of ns.structIterator()) {
+                    if (value[memberName] == null && !member.isIdempotencyToken()) {
+                        continue;
+                    }
+                    const suffix = this.getKey(memberName, member.getMergedTraits().xmlName);
+                    const key = `${prefix}${suffix}`;
+                    this.write(member, value[memberName], key);
+                }
+            }
+        }
+        else if (ns.isUnitSchema()) ;
+        else {
+            throw new Error(`@aws-sdk/core/protocols - QuerySerializer unrecognized schema type ${ns.getName(true)}`);
+        }
+    }
+    flush() {
+        if (this.buffer === undefined) {
+            throw new Error("@aws-sdk/core/protocols - QuerySerializer cannot flush with nothing written to buffer.");
+        }
+        const str = this.buffer;
+        delete this.buffer;
+        return str;
+    }
+    getKey(memberName, xmlName) {
+        const key = xmlName ?? memberName;
+        if (this.settings.capitalizeKeys) {
+            return key[0].toUpperCase() + key.slice(1);
+        }
+        return key;
+    }
+    writeKey(key) {
+        if (key.endsWith(".")) {
+            key = key.slice(0, key.length - 1);
+        }
+        this.buffer += `&${protocols.extendedEncodeURIComponent(key)}=`;
+    }
+    writeValue(value) {
+        this.buffer += protocols.extendedEncodeURIComponent(value);
+    }
+}
+
+class AwsQueryProtocol extends protocols.RpcProtocol {
+    options;
+    serializer;
+    deserializer;
+    mixin = new ProtocolLib();
+    constructor(options) {
+        super({
+            defaultNamespace: options.defaultNamespace,
+        });
+        this.options = options;
+        const settings = {
+            timestampFormat: {
+                useTrait: true,
+                default: 5,
+            },
+            httpBindings: false,
+            xmlNamespace: options.xmlNamespace,
+            serviceNamespace: options.defaultNamespace,
+            serializeEmptyLists: true,
+        };
+        this.serializer = new QueryShapeSerializer(settings);
+        this.deserializer = new XmlShapeDeserializer(settings);
+    }
+    getShapeId() {
+        return "aws.protocols#awsQuery";
+    }
+    setSerdeContext(serdeContext) {
+        this.serializer.setSerdeContext(serdeContext);
+        this.deserializer.setSerdeContext(serdeContext);
+    }
+    getPayloadCodec() {
+        throw new Error("AWSQuery protocol has no payload codec.");
+    }
+    async serializeRequest(operationSchema, input, context) {
+        const request = await super.serializeRequest(operationSchema, input, context);
+        if (!request.path.endsWith("/")) {
+            request.path += "/";
+        }
+        Object.assign(request.headers, {
+            "content-type": `application/x-www-form-urlencoded`,
+        });
+        if (schema.deref(operationSchema.input) === "unit" || !request.body) {
+            request.body = "";
+        }
+        const action = operationSchema.name.split("#")[1] ?? operationSchema.name;
+        request.body = `Action=${action}&Version=${this.options.version}` + request.body;
+        if (request.body.endsWith("&")) {
+            request.body = request.body.slice(-1);
+        }
+        return request;
+    }
+    async deserializeResponse(operationSchema, context, response) {
+        const deserializer = this.deserializer;
+        const ns = schema.NormalizedSchema.of(operationSchema.output);
+        const dataObject = {};
+        if (response.statusCode >= 300) {
+            const bytes = await protocols.collectBody(response.body, context);
+            if (bytes.byteLength > 0) {
+                Object.assign(dataObject, await deserializer.read(15, bytes));
+            }
+            await this.handleError(operationSchema, context, response, dataObject, this.deserializeMetadata(response));
+        }
+        for (const header in response.headers) {
+            const value = response.headers[header];
+            delete response.headers[header];
+            response.headers[header.toLowerCase()] = value;
+        }
+        const shortName = operationSchema.name.split("#")[1] ?? operationSchema.name;
+        const awsQueryResultKey = ns.isStructSchema() && this.useNestedResult() ? shortName + "Result" : undefined;
+        const bytes = await protocols.collectBody(response.body, context);
+        if (bytes.byteLength > 0) {
+            Object.assign(dataObject, await deserializer.read(ns, bytes, awsQueryResultKey));
+        }
+        const output = {
+            $metadata: this.deserializeMetadata(response),
+            ...dataObject,
+        };
+        return output;
+    }
+    useNestedResult() {
+        return true;
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+        const errorIdentifier = this.loadQueryErrorCode(response, dataObject) ?? "Unknown";
+        const errorData = this.loadQueryError(dataObject);
+        const message = this.loadQueryErrorMessage(dataObject);
+        errorData.message = message;
+        errorData.Error = {
+            Type: errorData.Type,
+            Code: errorData.Code,
+            Message: message,
+        };
+        const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, errorData, metadata, (registry, errorName) => {
+            try {
+                return registry.getSchema(errorName);
+            }
+            catch (e) {
+                return registry.find((schema$1) => schema.NormalizedSchema.of(schema$1).getMergedTraits().awsQueryError?.[0] === errorName);
+            }
+        });
+        const ns = schema.NormalizedSchema.of(errorSchema);
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
+        const exception = new ErrorCtor(message);
+        const output = {
+            Error: errorData.Error,
+        };
+        for (const [name, member] of ns.structIterator()) {
+            const target = member.getMergedTraits().xmlName ?? name;
+            const value = errorData[target] ?? dataObject[target];
+            output[name] = this.deserializer.readSchema(member, value);
+        }
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+            $fault: ns.getMergedTraits().error,
+            message,
+        }, output), dataObject);
+    }
+    loadQueryErrorCode(output, data) {
+        const code = (data.Errors?.[0]?.Error ?? data.Errors?.Error ?? data.Error)?.Code;
+        if (code !== undefined) {
+            return code;
+        }
+        if (output.statusCode == 404) {
+            return "NotFound";
+        }
+    }
+    loadQueryError(data) {
+        return data.Errors?.[0]?.Error ?? data.Errors?.Error ?? data.Error;
+    }
+    loadQueryErrorMessage(data) {
+        const errorData = this.loadQueryError(data);
+        return errorData?.message ?? errorData?.Message ?? data.message ?? data.Message ?? "Unknown";
+    }
+    getDefaultContentType() {
+        return "application/x-www-form-urlencoded";
+    }
+}
+
+class AwsEc2QueryProtocol extends AwsQueryProtocol {
+    options;
+    constructor(options) {
+        super(options);
+        this.options = options;
+        const ec2Settings = {
+            capitalizeKeys: true,
+            flattenLists: true,
+            serializeEmptyLists: false,
+        };
+        Object.assign(this.serializer.settings, ec2Settings);
+    }
+    useNestedResult() {
+        return false;
+    }
+}
+
+const parseXmlBody = (streamBody, context) => collectBodyString(streamBody, context).then((encoded) => {
+    if (encoded.length) {
+        let parsedObj;
+        try {
+            parsedObj = xmlBuilder.parseXML(encoded);
+        }
+        catch (e) {
+            if (e && typeof e === "object") {
+                Object.defineProperty(e, "$responseBodyText", {
+                    value: encoded,
+                });
+            }
+            throw e;
+        }
+        const textNodeName = "#text";
+        const key = Object.keys(parsedObj)[0];
+        const parsedObjToReturn = parsedObj[key];
+        if (parsedObjToReturn[textNodeName]) {
+            parsedObjToReturn[key] = parsedObjToReturn[textNodeName];
+            delete parsedObjToReturn[textNodeName];
+        }
+        return smithyClient.getValueFromTextNode(parsedObjToReturn);
+    }
+    return {};
+});
+const parseXmlErrorBody = async (errorBody, context) => {
+    const value = await parseXmlBody(errorBody, context);
+    if (value.Error) {
+        value.Error.message = value.Error.message ?? value.Error.Message;
+    }
+    return value;
+};
+const loadRestXmlErrorCode = (output, data) => {
+    if (data?.Error?.Code !== undefined) {
+        return data.Error.Code;
+    }
+    if (data?.Code !== undefined) {
+        return data.Code;
+    }
+    if (output.statusCode == 404) {
+        return "NotFound";
+    }
+};
+
+class XmlShapeSerializer extends SerdeContextConfig {
+    settings;
+    stringBuffer;
+    byteBuffer;
+    buffer;
+    constructor(settings) {
+        super();
+        this.settings = settings;
+    }
+    write(schema$1, value) {
+        const ns = schema.NormalizedSchema.of(schema$1);
+        if (ns.isStringSchema() && typeof value === "string") {
+            this.stringBuffer = value;
+        }
+        else if (ns.isBlobSchema()) {
+            this.byteBuffer =
+                "byteLength" in value
+                    ? value
+                    : (this.serdeContext?.base64Decoder ?? utilBase64.fromBase64)(value);
+        }
+        else {
+            this.buffer = this.writeStruct(ns, value, undefined);
+            const traits = ns.getMergedTraits();
+            if (traits.httpPayload && !traits.xmlName) {
+                this.buffer.withName(ns.getName());
+            }
+        }
+    }
+    flush() {
+        if (this.byteBuffer !== undefined) {
+            const bytes = this.byteBuffer;
+            delete this.byteBuffer;
+            return bytes;
+        }
+        if (this.stringBuffer !== undefined) {
+            const str = this.stringBuffer;
+            delete this.stringBuffer;
+            return str;
+        }
+        const buffer = this.buffer;
+        if (this.settings.xmlNamespace) {
+            if (!buffer?.attributes?.["xmlns"]) {
+                buffer.addAttribute("xmlns", this.settings.xmlNamespace);
+            }
+        }
+        delete this.buffer;
+        return buffer.toString();
+    }
+    writeStruct(ns, value, parentXmlns) {
+        const traits = ns.getMergedTraits();
+        const name = ns.isMemberSchema() && !traits.httpPayload
+            ? ns.getMemberTraits().xmlName ?? ns.getMemberName()
+            : traits.xmlName ?? ns.getName();
+        if (!name || !ns.isStructSchema()) {
+            throw new Error(`@aws-sdk/core/protocols - xml serializer, cannot write struct with empty name or non-struct, schema=${ns.getName(true)}.`);
+        }
+        const structXmlNode = xmlBuilder.XmlNode.of(name);
+        const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(ns, parentXmlns);
+        for (const [memberName, memberSchema] of ns.structIterator()) {
+            const val = value[memberName];
+            if (val != null || memberSchema.isIdempotencyToken()) {
+                if (memberSchema.getMergedTraits().xmlAttribute) {
+                    structXmlNode.addAttribute(memberSchema.getMergedTraits().xmlName ?? memberName, this.writeSimple(memberSchema, val));
+                    continue;
+                }
+                if (memberSchema.isListSchema()) {
+                    this.writeList(memberSchema, val, structXmlNode, xmlns);
+                }
+                else if (memberSchema.isMapSchema()) {
+                    this.writeMap(memberSchema, val, structXmlNode, xmlns);
+                }
+                else if (memberSchema.isStructSchema()) {
+                    structXmlNode.addChildNode(this.writeStruct(memberSchema, val, xmlns));
+                }
+                else {
+                    const memberNode = xmlBuilder.XmlNode.of(memberSchema.getMergedTraits().xmlName ?? memberSchema.getMemberName());
+                    this.writeSimpleInto(memberSchema, val, memberNode, xmlns);
+                    structXmlNode.addChildNode(memberNode);
+                }
+            }
+        }
+        if (xmlns) {
+            structXmlNode.addAttribute(xmlnsAttr, xmlns);
+        }
+        return structXmlNode;
+    }
+    writeList(listMember, array, container, parentXmlns) {
+        if (!listMember.isMemberSchema()) {
+            throw new Error(`@aws-sdk/core/protocols - xml serializer, cannot write non-member list: ${listMember.getName(true)}`);
+        }
+        const listTraits = listMember.getMergedTraits();
+        const listValueSchema = listMember.getValueSchema();
+        const listValueTraits = listValueSchema.getMergedTraits();
+        const sparse = !!listValueTraits.sparse;
+        const flat = !!listTraits.xmlFlattened;
+        const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(listMember, parentXmlns);
+        const writeItem = (container, value) => {
+            if (listValueSchema.isListSchema()) {
+                this.writeList(listValueSchema, Array.isArray(value) ? value : [value], container, xmlns);
+            }
+            else if (listValueSchema.isMapSchema()) {
+                this.writeMap(listValueSchema, value, container, xmlns);
+            }
+            else if (listValueSchema.isStructSchema()) {
+                const struct = this.writeStruct(listValueSchema, value, xmlns);
+                container.addChildNode(struct.withName(flat ? listTraits.xmlName ?? listMember.getMemberName() : listValueTraits.xmlName ?? "member"));
+            }
+            else {
+                const listItemNode = xmlBuilder.XmlNode.of(flat ? listTraits.xmlName ?? listMember.getMemberName() : listValueTraits.xmlName ?? "member");
+                this.writeSimpleInto(listValueSchema, value, listItemNode, xmlns);
+                container.addChildNode(listItemNode);
+            }
+        };
+        if (flat) {
+            for (const value of array) {
+                if (sparse || value != null) {
+                    writeItem(container, value);
+                }
+            }
+        }
+        else {
+            const listNode = xmlBuilder.XmlNode.of(listTraits.xmlName ?? listMember.getMemberName());
+            if (xmlns) {
+                listNode.addAttribute(xmlnsAttr, xmlns);
+            }
+            for (const value of array) {
+                if (sparse || value != null) {
+                    writeItem(listNode, value);
+                }
+            }
+            container.addChildNode(listNode);
+        }
+    }
+    writeMap(mapMember, map, container, parentXmlns, containerIsMap = false) {
+        if (!mapMember.isMemberSchema()) {
+            throw new Error(`@aws-sdk/core/protocols - xml serializer, cannot write non-member map: ${mapMember.getName(true)}`);
+        }
+        const mapTraits = mapMember.getMergedTraits();
+        const mapKeySchema = mapMember.getKeySchema();
+        const mapKeyTraits = mapKeySchema.getMergedTraits();
+        const keyTag = mapKeyTraits.xmlName ?? "key";
+        const mapValueSchema = mapMember.getValueSchema();
+        const mapValueTraits = mapValueSchema.getMergedTraits();
+        const valueTag = mapValueTraits.xmlName ?? "value";
+        const sparse = !!mapValueTraits.sparse;
+        const flat = !!mapTraits.xmlFlattened;
+        const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(mapMember, parentXmlns);
+        const addKeyValue = (entry, key, val) => {
+            const keyNode = xmlBuilder.XmlNode.of(keyTag, key);
+            const [keyXmlnsAttr, keyXmlns] = this.getXmlnsAttribute(mapKeySchema, xmlns);
+            if (keyXmlns) {
+                keyNode.addAttribute(keyXmlnsAttr, keyXmlns);
+            }
+            entry.addChildNode(keyNode);
+            let valueNode = xmlBuilder.XmlNode.of(valueTag);
+            if (mapValueSchema.isListSchema()) {
+                this.writeList(mapValueSchema, val, valueNode, xmlns);
+            }
+            else if (mapValueSchema.isMapSchema()) {
+                this.writeMap(mapValueSchema, val, valueNode, xmlns, true);
+            }
+            else if (mapValueSchema.isStructSchema()) {
+                valueNode = this.writeStruct(mapValueSchema, val, xmlns);
+            }
+            else {
+                this.writeSimpleInto(mapValueSchema, val, valueNode, xmlns);
+            }
+            entry.addChildNode(valueNode);
+        };
+        if (flat) {
+            for (const [key, val] of Object.entries(map)) {
+                if (sparse || val != null) {
+                    const entry = xmlBuilder.XmlNode.of(mapTraits.xmlName ?? mapMember.getMemberName());
+                    addKeyValue(entry, key, val);
+                    container.addChildNode(entry);
+                }
+            }
+        }
+        else {
+            let mapNode;
+            if (!containerIsMap) {
+                mapNode = xmlBuilder.XmlNode.of(mapTraits.xmlName ?? mapMember.getMemberName());
+                if (xmlns) {
+                    mapNode.addAttribute(xmlnsAttr, xmlns);
+                }
+                container.addChildNode(mapNode);
+            }
+            for (const [key, val] of Object.entries(map)) {
+                if (sparse || val != null) {
+                    const entry = xmlBuilder.XmlNode.of("entry");
+                    addKeyValue(entry, key, val);
+                    (containerIsMap ? container : mapNode).addChildNode(entry);
+                }
+            }
+        }
+    }
+    writeSimple(_schema, value) {
+        if (null === value) {
+            throw new Error("@aws-sdk/core/protocols - (XML serializer) cannot write null value.");
+        }
+        const ns = schema.NormalizedSchema.of(_schema);
+        let nodeContents = null;
+        if (value && typeof value === "object") {
+            if (ns.isBlobSchema()) {
+                nodeContents = (this.serdeContext?.base64Encoder ?? utilBase64.toBase64)(value);
+            }
+            else if (ns.isTimestampSchema() && value instanceof Date) {
+                const format = protocols.determineTimestampFormat(ns, this.settings);
+                switch (format) {
+                    case 5:
+                        nodeContents = value.toISOString().replace(".000Z", "Z");
+                        break;
+                    case 6:
+                        nodeContents = smithyClient.dateToUtcString(value);
+                        break;
+                    case 7:
+                        nodeContents = String(value.getTime() / 1000);
+                        break;
+                    default:
+                        console.warn("Missing timestamp format, using http date", value);
+                        nodeContents = smithyClient.dateToUtcString(value);
+                        break;
+                }
+            }
+            else if (ns.isBigDecimalSchema() && value) {
+                if (value instanceof serde.NumericValue) {
+                    return value.string;
+                }
+                return String(value);
+            }
+            else if (ns.isMapSchema() || ns.isListSchema()) {
+                throw new Error("@aws-sdk/core/protocols - xml serializer, cannot call _write() on List/Map schema, call writeList or writeMap() instead.");
+            }
+            else {
+                throw new Error(`@aws-sdk/core/protocols - xml serializer, unhandled schema type for object value and schema: ${ns.getName(true)}`);
+            }
+        }
+        if (ns.isBooleanSchema() || ns.isNumericSchema() || ns.isBigIntegerSchema() || ns.isBigDecimalSchema()) {
+            nodeContents = String(value);
+        }
+        if (ns.isStringSchema()) {
+            if (value === undefined && ns.isIdempotencyToken()) {
+                nodeContents = serde.generateIdempotencyToken();
+            }
+            else {
+                nodeContents = String(value);
+            }
+        }
+        if (nodeContents === null) {
+            throw new Error(`Unhandled schema-value pair ${ns.getName(true)}=${value}`);
+        }
+        return nodeContents;
+    }
+    writeSimpleInto(_schema, value, into, parentXmlns) {
+        const nodeContents = this.writeSimple(_schema, value);
+        const ns = schema.NormalizedSchema.of(_schema);
+        const content = new xmlBuilder.XmlText(nodeContents);
+        const [xmlnsAttr, xmlns] = this.getXmlnsAttribute(ns, parentXmlns);
+        if (xmlns) {
+            into.addAttribute(xmlnsAttr, xmlns);
+        }
+        into.addChildNode(content);
+    }
+    getXmlnsAttribute(ns, parentXmlns) {
+        const traits = ns.getMergedTraits();
+        const [prefix, xmlns] = traits.xmlNamespace ?? [];
+        if (xmlns && xmlns !== parentXmlns) {
+            return [prefix ? `xmlns:${prefix}` : "xmlns", xmlns];
+        }
+        return [void 0, void 0];
+    }
+}
+
+class XmlCodec extends SerdeContextConfig {
+    settings;
+    constructor(settings) {
+        super();
+        this.settings = settings;
+    }
+    createSerializer() {
+        const serializer = new XmlShapeSerializer(this.settings);
+        serializer.setSerdeContext(this.serdeContext);
+        return serializer;
+    }
+    createDeserializer() {
+        const deserializer = new XmlShapeDeserializer(this.settings);
+        deserializer.setSerdeContext(this.serdeContext);
+        return deserializer;
+    }
+}
+
+class AwsRestXmlProtocol extends protocols.HttpBindingProtocol {
+    codec;
+    serializer;
+    deserializer;
+    mixin = new ProtocolLib();
+    constructor(options) {
+        super(options);
+        const settings = {
+            timestampFormat: {
+                useTrait: true,
+                default: 5,
+            },
+            httpBindings: true,
+            xmlNamespace: options.xmlNamespace,
+            serviceNamespace: options.defaultNamespace,
+        };
+        this.codec = new XmlCodec(settings);
+        this.serializer = new protocols.HttpInterceptingShapeSerializer(this.codec.createSerializer(), settings);
+        this.deserializer = new protocols.HttpInterceptingShapeDeserializer(this.codec.createDeserializer(), settings);
+    }
+    getPayloadCodec() {
+        return this.codec;
+    }
+    getShapeId() {
+        return "aws.protocols#restXml";
+    }
+    async serializeRequest(operationSchema, input, context) {
+        const request = await super.serializeRequest(operationSchema, input, context);
+        const inputSchema = schema.NormalizedSchema.of(operationSchema.input);
+        if (!request.headers["content-type"]) {
+            const contentType = this.mixin.resolveRestContentType(this.getDefaultContentType(), inputSchema);
+            if (contentType) {
+                request.headers["content-type"] = contentType;
+            }
+        }
+        if (request.headers["content-type"] === this.getDefaultContentType()) {
+            if (typeof request.body === "string") {
+                request.body = '<?xml version="1.0" encoding="UTF-8"?>' + request.body;
+            }
+        }
+        return request;
+    }
+    async deserializeResponse(operationSchema, context, response) {
+        return super.deserializeResponse(operationSchema, context, response);
+    }
+    async handleError(operationSchema, context, response, dataObject, metadata) {
+        const errorIdentifier = loadRestXmlErrorCode(response, dataObject) ?? "Unknown";
+        const { errorSchema, errorMetadata } = await this.mixin.getErrorSchemaOrThrowBaseException(errorIdentifier, this.options.defaultNamespace, response, dataObject, metadata);
+        const ns = schema.NormalizedSchema.of(errorSchema);
+        const message = dataObject.Error?.message ?? dataObject.Error?.Message ?? dataObject.message ?? dataObject.Message ?? "Unknown";
+        const ErrorCtor = schema.TypeRegistry.for(errorSchema[1]).getErrorCtor(errorSchema) ?? Error;
+        const exception = new ErrorCtor(message);
+        await this.deserializeHttpMessage(errorSchema, context, response, dataObject);
+        const output = {};
+        for (const [name, member] of ns.structIterator()) {
+            const target = member.getMergedTraits().xmlName ?? name;
+            const value = dataObject.Error?.[target] ?? dataObject[target];
+            output[name] = this.codec.createDeserializer().readSchema(member, value);
+        }
+        throw this.mixin.decorateServiceException(Object.assign(exception, errorMetadata, {
+            $fault: ns.getMergedTraits().error,
+            message,
+        }, output), dataObject);
+    }
+    getDefaultContentType() {
+        return "application/xml";
+    }
+}
+
+exports.AwsEc2QueryProtocol = AwsEc2QueryProtocol;
+exports.AwsJson1_0Protocol = AwsJson1_0Protocol;
+exports.AwsJson1_1Protocol = AwsJson1_1Protocol;
+exports.AwsJsonRpcProtocol = AwsJsonRpcProtocol;
+exports.AwsQueryProtocol = AwsQueryProtocol;
+exports.AwsRestJsonProtocol = AwsRestJsonProtocol;
+exports.AwsRestXmlProtocol = AwsRestXmlProtocol;
+exports.AwsSmithyRpcV2CborProtocol = AwsSmithyRpcV2CborProtocol;
+exports.JsonCodec = JsonCodec;
+exports.JsonShapeDeserializer = JsonShapeDeserializer;
+exports.JsonShapeSerializer = JsonShapeSerializer;
+exports.XmlCodec = XmlCodec;
+exports.XmlShapeDeserializer = XmlShapeDeserializer;
+exports.XmlShapeSerializer = XmlShapeSerializer;
+exports._toBool = _toBool;
+exports._toNum = _toNum;
+exports._toStr = _toStr;
+exports.awsExpectUnion = awsExpectUnion;
+exports.loadRestJsonErrorCode = loadRestJsonErrorCode;
+exports.loadRestXmlErrorCode = loadRestXmlErrorCode;
+exports.parseJsonBody = parseJsonBody;
+exports.parseJsonErrorBody = parseJsonErrorBody;
+exports.parseXmlBody = parseXmlBody;
+exports.parseXmlErrorBody = parseXmlErrorBody;
+
+
+/***/ }),
+
 /***/ 5606:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -9172,17 +10908,73 @@ const remoteProvider = async (init) => {
     return fromInstanceMetadata(init);
 };
 
+function memoizeChain(providers, treatAsExpired) {
+    const chain = internalCreateChain(providers);
+    let activeLock;
+    let passiveLock;
+    let credentials;
+    const provider = async (options) => {
+        if (options?.forceRefresh) {
+            return await chain(options);
+        }
+        if (credentials?.expiration) {
+            if (credentials?.expiration?.getTime() < Date.now()) {
+                credentials = undefined;
+            }
+        }
+        if (activeLock) {
+            await activeLock;
+        }
+        else if (!credentials || treatAsExpired?.(credentials)) {
+            if (credentials) {
+                if (!passiveLock) {
+                    passiveLock = chain(options).then((c) => {
+                        credentials = c;
+                        passiveLock = undefined;
+                    });
+                }
+            }
+            else {
+                activeLock = chain(options).then((c) => {
+                    credentials = c;
+                    activeLock = undefined;
+                });
+                return provider(options);
+            }
+        }
+        return credentials;
+    };
+    return provider;
+}
+const internalCreateChain = (providers) => async (awsIdentityProperties) => {
+    let lastProviderError;
+    for (const provider of providers) {
+        try {
+            return await provider(awsIdentityProperties);
+        }
+        catch (err) {
+            lastProviderError = err;
+            if (err?.tryNextLink) {
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw lastProviderError;
+};
+
 let multipleCredentialSourceWarningEmitted = false;
-const defaultProvider = (init = {}) => propertyProvider.memoize(propertyProvider.chain(async () => {
-    const profile = init.profile ?? process.env[sharedIniFileLoader.ENV_PROFILE];
-    if (profile) {
-        const envStaticCredentialsAreSet = process.env[credentialProviderEnv.ENV_KEY] && process.env[credentialProviderEnv.ENV_SECRET];
-        if (envStaticCredentialsAreSet) {
-            if (!multipleCredentialSourceWarningEmitted) {
-                const warnFn = init.logger?.warn && init.logger?.constructor?.name !== "NoOpLogger"
-                    ? init.logger.warn.bind(init.logger)
-                    : console.warn;
-                warnFn(`@aws-sdk/credential-provider-node - defaultProvider::fromEnv WARNING:
+const defaultProvider = (init = {}) => memoizeChain([
+    async () => {
+        const profile = init.profile ?? process.env[sharedIniFileLoader.ENV_PROFILE];
+        if (profile) {
+            const envStaticCredentialsAreSet = process.env[credentialProviderEnv.ENV_KEY] && process.env[credentialProviderEnv.ENV_SECRET];
+            if (envStaticCredentialsAreSet) {
+                if (!multipleCredentialSourceWarningEmitted) {
+                    const warnFn = init.logger?.warn && init.logger?.constructor?.name !== "NoOpLogger"
+                        ? init.logger.warn.bind(init.logger)
+                        : console.warn;
+                    warnFn(`@aws-sdk/credential-provider-node - defaultProvider::fromEnv WARNING:
     Multiple credential sources detected: 
     Both AWS_PROFILE and the pair AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY static credentials are set.
     This SDK will proceed with the AWS_PROFILE value.
@@ -9191,45 +10983,52 @@ const defaultProvider = (init = {}) => propertyProvider.memoize(propertyProvider
     Please ensure that your environment only sets either the AWS_PROFILE or the
     AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY pair.
 `);
-                multipleCredentialSourceWarningEmitted = true;
+                    multipleCredentialSourceWarningEmitted = true;
+                }
             }
+            throw new propertyProvider.CredentialsProviderError("AWS_PROFILE is set, skipping fromEnv provider.", {
+                logger: init.logger,
+                tryNextLink: true,
+            });
         }
-        throw new propertyProvider.CredentialsProviderError("AWS_PROFILE is set, skipping fromEnv provider.", {
+        init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromEnv");
+        return credentialProviderEnv.fromEnv(init)();
+    },
+    async (awsIdentityProperties) => {
+        init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromSSO");
+        const { ssoStartUrl, ssoAccountId, ssoRegion, ssoRoleName, ssoSession } = init;
+        if (!ssoStartUrl && !ssoAccountId && !ssoRegion && !ssoRoleName && !ssoSession) {
+            throw new propertyProvider.CredentialsProviderError("Skipping SSO provider in default chain (inputs do not include SSO fields).", { logger: init.logger });
+        }
+        const { fromSSO } = await __nccwpck_require__.e(/* import() */ 998).then(__nccwpck_require__.t.bind(__nccwpck_require__, 998, 19));
+        return fromSSO(init)(awsIdentityProperties);
+    },
+    async (awsIdentityProperties) => {
+        init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromIni");
+        const { fromIni } = await __nccwpck_require__.e(/* import() */ 869).then(__nccwpck_require__.t.bind(__nccwpck_require__, 5869, 19));
+        return fromIni(init)(awsIdentityProperties);
+    },
+    async (awsIdentityProperties) => {
+        init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromProcess");
+        const { fromProcess } = await __nccwpck_require__.e(/* import() */ 360).then(__nccwpck_require__.t.bind(__nccwpck_require__, 5360, 19));
+        return fromProcess(init)(awsIdentityProperties);
+    },
+    async (awsIdentityProperties) => {
+        init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromTokenFile");
+        const { fromTokenFile } = await __nccwpck_require__.e(/* import() */ 956).then(__nccwpck_require__.t.bind(__nccwpck_require__, 9956, 23));
+        return fromTokenFile(init)(awsIdentityProperties);
+    },
+    async () => {
+        init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::remoteProvider");
+        return (await remoteProvider(init))();
+    },
+    async () => {
+        throw new propertyProvider.CredentialsProviderError("Could not load credentials from any providers", {
+            tryNextLink: false,
             logger: init.logger,
-            tryNextLink: true,
         });
-    }
-    init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromEnv");
-    return credentialProviderEnv.fromEnv(init)();
-}, async () => {
-    init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromSSO");
-    const { ssoStartUrl, ssoAccountId, ssoRegion, ssoRoleName, ssoSession } = init;
-    if (!ssoStartUrl && !ssoAccountId && !ssoRegion && !ssoRoleName && !ssoSession) {
-        throw new propertyProvider.CredentialsProviderError("Skipping SSO provider in default chain (inputs do not include SSO fields).", { logger: init.logger });
-    }
-    const { fromSSO } = await __nccwpck_require__.e(/* import() */ 998).then(__nccwpck_require__.t.bind(__nccwpck_require__, 998, 19));
-    return fromSSO(init)();
-}, async () => {
-    init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromIni");
-    const { fromIni } = await __nccwpck_require__.e(/* import() */ 869).then(__nccwpck_require__.t.bind(__nccwpck_require__, 5869, 19));
-    return fromIni(init)();
-}, async () => {
-    init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromProcess");
-    const { fromProcess } = await __nccwpck_require__.e(/* import() */ 360).then(__nccwpck_require__.t.bind(__nccwpck_require__, 5360, 19));
-    return fromProcess(init)();
-}, async () => {
-    init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::fromTokenFile");
-    const { fromTokenFile } = await Promise.all(/* import() */[__nccwpck_require__.e(136), __nccwpck_require__.e(956)]).then(__nccwpck_require__.t.bind(__nccwpck_require__, 9956, 23));
-    return fromTokenFile(init)();
-}, async () => {
-    init.logger?.debug("@aws-sdk/credential-provider-node - defaultProvider::remoteProvider");
-    return (await remoteProvider(init))();
-}, async () => {
-    throw new propertyProvider.CredentialsProviderError("Could not load credentials from any providers", {
-        tryNextLink: false,
-        logger: init.logger,
-    });
-}), credentialsTreatedAsExpired, credentialsWillNeedRefresh);
+    },
+], credentialsTreatedAsExpired);
 const credentialsWillNeedRefresh = (credentials) => credentials?.expiration !== undefined;
 const credentialsTreatedAsExpired = (credentials) => credentials?.expiration !== undefined && credentials.expiration.getTime() - Date.now() < 300000;
 
@@ -9241,215 +11040,139 @@ exports.defaultProvider = defaultProvider;
 /***/ }),
 
 /***/ 2590:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  getHostHeaderPlugin: () => getHostHeaderPlugin,
-  hostHeaderMiddleware: () => hostHeaderMiddleware,
-  hostHeaderMiddlewareOptions: () => hostHeaderMiddlewareOptions,
-  resolveHostHeaderConfig: () => resolveHostHeaderConfig
-});
-module.exports = __toCommonJS(index_exports);
-var import_protocol_http = __nccwpck_require__(2356);
+var protocolHttp = __nccwpck_require__(2356);
+
 function resolveHostHeaderConfig(input) {
-  return input;
+    return input;
 }
-__name(resolveHostHeaderConfig, "resolveHostHeaderConfig");
-var hostHeaderMiddleware = /* @__PURE__ */ __name((options) => (next) => async (args) => {
-  if (!import_protocol_http.HttpRequest.isInstance(args.request)) return next(args);
-  const { request } = args;
-  const { handlerProtocol = "" } = options.requestHandler.metadata || {};
-  if (handlerProtocol.indexOf("h2") >= 0 && !request.headers[":authority"]) {
-    delete request.headers["host"];
-    request.headers[":authority"] = request.hostname + (request.port ? ":" + request.port : "");
-  } else if (!request.headers["host"]) {
-    let host = request.hostname;
-    if (request.port != null) host += `:${request.port}`;
-    request.headers["host"] = host;
-  }
-  return next(args);
-}, "hostHeaderMiddleware");
-var hostHeaderMiddlewareOptions = {
-  name: "hostHeaderMiddleware",
-  step: "build",
-  priority: "low",
-  tags: ["HOST"],
-  override: true
+const hostHeaderMiddleware = (options) => (next) => async (args) => {
+    if (!protocolHttp.HttpRequest.isInstance(args.request))
+        return next(args);
+    const { request } = args;
+    const { handlerProtocol = "" } = options.requestHandler.metadata || {};
+    if (handlerProtocol.indexOf("h2") >= 0 && !request.headers[":authority"]) {
+        delete request.headers["host"];
+        request.headers[":authority"] = request.hostname + (request.port ? ":" + request.port : "");
+    }
+    else if (!request.headers["host"]) {
+        let host = request.hostname;
+        if (request.port != null)
+            host += `:${request.port}`;
+        request.headers["host"] = host;
+    }
+    return next(args);
 };
-var getHostHeaderPlugin = /* @__PURE__ */ __name((options) => ({
-  applyToStack: /* @__PURE__ */ __name((clientStack) => {
-    clientStack.add(hostHeaderMiddleware(options), hostHeaderMiddlewareOptions);
-  }, "applyToStack")
-}), "getHostHeaderPlugin");
-// Annotate the CommonJS export names for ESM import in node:
+const hostHeaderMiddlewareOptions = {
+    name: "hostHeaderMiddleware",
+    step: "build",
+    priority: "low",
+    tags: ["HOST"],
+    override: true,
+};
+const getHostHeaderPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+        clientStack.add(hostHeaderMiddleware(options), hostHeaderMiddlewareOptions);
+    },
+});
 
-0 && (0);
-
+exports.getHostHeaderPlugin = getHostHeaderPlugin;
+exports.hostHeaderMiddleware = hostHeaderMiddleware;
+exports.hostHeaderMiddlewareOptions = hostHeaderMiddlewareOptions;
+exports.resolveHostHeaderConfig = resolveHostHeaderConfig;
 
 
 /***/ }),
 
 /***/ 5242:
-/***/ ((module) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  getLoggerPlugin: () => getLoggerPlugin,
-  loggerMiddleware: () => loggerMiddleware,
-  loggerMiddlewareOptions: () => loggerMiddlewareOptions
+const loggerMiddleware = () => (next, context) => async (args) => {
+    try {
+        const response = await next(args);
+        const { clientName, commandName, logger, dynamoDbDocumentClientOptions = {} } = context;
+        const { overrideInputFilterSensitiveLog, overrideOutputFilterSensitiveLog } = dynamoDbDocumentClientOptions;
+        const inputFilterSensitiveLog = overrideInputFilterSensitiveLog ?? context.inputFilterSensitiveLog;
+        const outputFilterSensitiveLog = overrideOutputFilterSensitiveLog ?? context.outputFilterSensitiveLog;
+        const { $metadata, ...outputWithoutMetadata } = response.output;
+        logger?.info?.({
+            clientName,
+            commandName,
+            input: inputFilterSensitiveLog(args.input),
+            output: outputFilterSensitiveLog(outputWithoutMetadata),
+            metadata: $metadata,
+        });
+        return response;
+    }
+    catch (error) {
+        const { clientName, commandName, logger, dynamoDbDocumentClientOptions = {} } = context;
+        const { overrideInputFilterSensitiveLog } = dynamoDbDocumentClientOptions;
+        const inputFilterSensitiveLog = overrideInputFilterSensitiveLog ?? context.inputFilterSensitiveLog;
+        logger?.error?.({
+            clientName,
+            commandName,
+            input: inputFilterSensitiveLog(args.input),
+            error,
+            metadata: error.$metadata,
+        });
+        throw error;
+    }
+};
+const loggerMiddlewareOptions = {
+    name: "loggerMiddleware",
+    tags: ["LOGGER"],
+    step: "initialize",
+    override: true,
+};
+const getLoggerPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+        clientStack.add(loggerMiddleware(), loggerMiddlewareOptions);
+    },
 });
-module.exports = __toCommonJS(index_exports);
 
-// src/loggerMiddleware.ts
-var loggerMiddleware = /* @__PURE__ */ __name(() => (next, context) => async (args) => {
-  try {
-    const response = await next(args);
-    const { clientName, commandName, logger, dynamoDbDocumentClientOptions = {} } = context;
-    const { overrideInputFilterSensitiveLog, overrideOutputFilterSensitiveLog } = dynamoDbDocumentClientOptions;
-    const inputFilterSensitiveLog = overrideInputFilterSensitiveLog ?? context.inputFilterSensitiveLog;
-    const outputFilterSensitiveLog = overrideOutputFilterSensitiveLog ?? context.outputFilterSensitiveLog;
-    const { $metadata, ...outputWithoutMetadata } = response.output;
-    logger?.info?.({
-      clientName,
-      commandName,
-      input: inputFilterSensitiveLog(args.input),
-      output: outputFilterSensitiveLog(outputWithoutMetadata),
-      metadata: $metadata
-    });
-    return response;
-  } catch (error) {
-    const { clientName, commandName, logger, dynamoDbDocumentClientOptions = {} } = context;
-    const { overrideInputFilterSensitiveLog } = dynamoDbDocumentClientOptions;
-    const inputFilterSensitiveLog = overrideInputFilterSensitiveLog ?? context.inputFilterSensitiveLog;
-    logger?.error?.({
-      clientName,
-      commandName,
-      input: inputFilterSensitiveLog(args.input),
-      error,
-      metadata: error.$metadata
-    });
-    throw error;
-  }
-}, "loggerMiddleware");
-var loggerMiddlewareOptions = {
-  name: "loggerMiddleware",
-  tags: ["LOGGER"],
-  step: "initialize",
-  override: true
-};
-var getLoggerPlugin = /* @__PURE__ */ __name((options) => ({
-  applyToStack: /* @__PURE__ */ __name((clientStack) => {
-    clientStack.add(loggerMiddleware(), loggerMiddlewareOptions);
-  }, "applyToStack")
-}), "getLoggerPlugin");
-// Annotate the CommonJS export names for ESM import in node:
-
-0 && (0);
-
+exports.getLoggerPlugin = getLoggerPlugin;
+exports.loggerMiddleware = loggerMiddleware;
+exports.loggerMiddlewareOptions = loggerMiddlewareOptions;
 
 
 /***/ }),
 
 /***/ 1568:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __reExport = (target, mod, secondTarget) => (__copyProps(target, mod, "default"), secondTarget && __copyProps(secondTarget, mod, "default"));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  getRecursionDetectionPlugin: () => getRecursionDetectionPlugin
+var recursionDetectionMiddleware = __nccwpck_require__(2521);
+
+const recursionDetectionMiddlewareOptions = {
+    step: "build",
+    tags: ["RECURSION_DETECTION"],
+    name: "recursionDetectionMiddleware",
+    override: true,
+    priority: "low",
+};
+
+const getRecursionDetectionPlugin = (options) => ({
+    applyToStack: (clientStack) => {
+        clientStack.add(recursionDetectionMiddleware.recursionDetectionMiddleware(), recursionDetectionMiddlewareOptions);
+    },
 });
-module.exports = __toCommonJS(index_exports);
 
-// src/configuration.ts
-var recursionDetectionMiddlewareOptions = {
-  step: "build",
-  tags: ["RECURSION_DETECTION"],
-  name: "recursionDetectionMiddleware",
-  override: true,
-  priority: "low"
-};
-
-// src/getRecursionDetectionPlugin.ts
-var import_recursionDetectionMiddleware = __nccwpck_require__(2521);
-var getRecursionDetectionPlugin = /* @__PURE__ */ __name((options) => ({
-  applyToStack: /* @__PURE__ */ __name((clientStack) => {
-    clientStack.add((0, import_recursionDetectionMiddleware.recursionDetectionMiddleware)(), recursionDetectionMiddlewareOptions);
-  }, "applyToStack")
-}), "getRecursionDetectionPlugin");
-
-// src/index.ts
-__reExport(index_exports, __nccwpck_require__(2521), module.exports);
-// Annotate the CommonJS export names for ESM import in node:
-
-0 && (0);
-
+exports.getRecursionDetectionPlugin = getRecursionDetectionPlugin;
+Object.keys(recursionDetectionMiddleware).forEach(function (k) {
+    if (k !== 'default' && !Object.prototype.hasOwnProperty.call(exports, k)) Object.defineProperty(exports, k, {
+        enumerable: true,
+        get: function () { return recursionDetectionMiddleware[k]; }
+    });
+});
 
 
 /***/ }),
@@ -9461,7 +11184,7 @@ __reExport(index_exports, __nccwpck_require__(2521), module.exports);
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.recursionDetectionMiddleware = void 0;
-const lambda_invoke_store_1 = __nccwpck_require__(7453);
+const lambda_invoke_store_1 = __nccwpck_require__(9320);
 const protocol_http_1 = __nccwpck_require__(2356);
 const TRACE_ID_HEADER_NAME = "X-Amzn-Trace-Id";
 const ENV_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME";
@@ -9586,8 +11309,8 @@ const USER_AGENT = "user-agent";
 const X_AMZ_USER_AGENT = "x-amz-user-agent";
 const SPACE = " ";
 const UA_NAME_SEPARATOR = "/";
-const UA_NAME_ESCAPE_REGEX = /[^\!\$\%\&\'\*\+\-\.\^\_\`\|\~\d\w]/g;
-const UA_VALUE_ESCAPE_REGEX = /[^\!\$\%\&\'\*\+\-\.\^\_\`\|\~\d\w\#]/g;
+const UA_NAME_ESCAPE_REGEX = /[^!$%&'*+\-.^_`|~\w]/g;
+const UA_VALUE_ESCAPE_REGEX = /[^!$%&'*+\-.^_`|~\w#]/g;
 const UA_ESCAPE_CHAR = "-";
 
 const BYTE_LIMIT = 1024;
@@ -9623,7 +11346,7 @@ const userAgentMiddleware = (options) => (next, context) => async (args) => {
     const customUserAgent = options?.customUserAgent?.map(escapeUserAgent) || [];
     const appId = await options.userAgentAppId();
     if (appId) {
-        defaultUserAgent.push(escapeUserAgent([`app/${appId}`]));
+        defaultUserAgent.push(escapeUserAgent([`app`, `${appId}`]));
     }
     const prefix = utilEndpoints.getUserAgentPrefix();
     const sdkUserAgentValue = (prefix ? [prefix] : [])
@@ -9697,589 +11420,509 @@ exports.userAgentMiddleware = userAgentMiddleware;
 /***/ }),
 
 /***/ 6463:
-/***/ ((module) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  NODE_REGION_CONFIG_FILE_OPTIONS: () => NODE_REGION_CONFIG_FILE_OPTIONS,
-  NODE_REGION_CONFIG_OPTIONS: () => NODE_REGION_CONFIG_OPTIONS,
-  REGION_ENV_NAME: () => REGION_ENV_NAME,
-  REGION_INI_NAME: () => REGION_INI_NAME,
-  getAwsRegionExtensionConfiguration: () => getAwsRegionExtensionConfiguration,
-  resolveAwsRegionExtensionConfiguration: () => resolveAwsRegionExtensionConfiguration,
-  resolveRegionConfig: () => resolveRegionConfig
+var configResolver = __nccwpck_require__(9316);
+var stsRegionDefaultResolver = __nccwpck_require__(5779);
+
+const getAwsRegionExtensionConfiguration = (runtimeConfig) => {
+    return {
+        setRegion(region) {
+            runtimeConfig.region = region;
+        },
+        region() {
+            return runtimeConfig.region;
+        },
+    };
+};
+const resolveAwsRegionExtensionConfiguration = (awsRegionExtensionConfiguration) => {
+    return {
+        region: awsRegionExtensionConfiguration.region(),
+    };
+};
+
+Object.defineProperty(exports, "NODE_REGION_CONFIG_FILE_OPTIONS", ({
+    enumerable: true,
+    get: function () { return configResolver.NODE_REGION_CONFIG_FILE_OPTIONS; }
+}));
+Object.defineProperty(exports, "NODE_REGION_CONFIG_OPTIONS", ({
+    enumerable: true,
+    get: function () { return configResolver.NODE_REGION_CONFIG_OPTIONS; }
+}));
+Object.defineProperty(exports, "REGION_ENV_NAME", ({
+    enumerable: true,
+    get: function () { return configResolver.REGION_ENV_NAME; }
+}));
+Object.defineProperty(exports, "REGION_INI_NAME", ({
+    enumerable: true,
+    get: function () { return configResolver.REGION_INI_NAME; }
+}));
+Object.defineProperty(exports, "resolveRegionConfig", ({
+    enumerable: true,
+    get: function () { return configResolver.resolveRegionConfig; }
+}));
+exports.getAwsRegionExtensionConfiguration = getAwsRegionExtensionConfiguration;
+exports.resolveAwsRegionExtensionConfiguration = resolveAwsRegionExtensionConfiguration;
+Object.keys(stsRegionDefaultResolver).forEach(function (k) {
+    if (k !== 'default' && !Object.prototype.hasOwnProperty.call(exports, k)) Object.defineProperty(exports, k, {
+        enumerable: true,
+        get: function () { return stsRegionDefaultResolver[k]; }
+    });
 });
-module.exports = __toCommonJS(index_exports);
 
-// src/extensions/index.ts
-var getAwsRegionExtensionConfiguration = /* @__PURE__ */ __name((runtimeConfig) => {
-  return {
-    setRegion(region) {
-      runtimeConfig.region = region;
-    },
-    region() {
-      return runtimeConfig.region;
-    }
-  };
-}, "getAwsRegionExtensionConfiguration");
-var resolveAwsRegionExtensionConfiguration = /* @__PURE__ */ __name((awsRegionExtensionConfiguration) => {
-  return {
-    region: awsRegionExtensionConfiguration.region()
-  };
-}, "resolveAwsRegionExtensionConfiguration");
 
-// src/regionConfig/config.ts
-var REGION_ENV_NAME = "AWS_REGION";
-var REGION_INI_NAME = "region";
-var NODE_REGION_CONFIG_OPTIONS = {
-  environmentVariableSelector: /* @__PURE__ */ __name((env) => env[REGION_ENV_NAME], "environmentVariableSelector"),
-  configFileSelector: /* @__PURE__ */ __name((profile) => profile[REGION_INI_NAME], "configFileSelector"),
-  default: /* @__PURE__ */ __name(() => {
-    throw new Error("Region is missing");
-  }, "default")
+/***/ }),
+
+/***/ 5779:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.warning = void 0;
+exports.stsRegionDefaultResolver = stsRegionDefaultResolver;
+const config_resolver_1 = __nccwpck_require__(9316);
+const node_config_provider_1 = __nccwpck_require__(5704);
+function stsRegionDefaultResolver(loaderConfig = {}) {
+    return (0, node_config_provider_1.loadConfig)({
+        ...config_resolver_1.NODE_REGION_CONFIG_OPTIONS,
+        async default() {
+            if (!exports.warning.silence) {
+                console.warn("@aws-sdk - WARN - default STS region of us-east-1 used. See @aws-sdk/credential-providers README and set a region explicitly.");
+            }
+            return "us-east-1";
+        },
+    }, { ...config_resolver_1.NODE_REGION_CONFIG_FILE_OPTIONS, ...loaderConfig });
+}
+exports.warning = {
+    silence: false,
 };
-var NODE_REGION_CONFIG_FILE_OPTIONS = {
-  preferredFile: "credentials"
-};
-
-// src/regionConfig/isFipsRegion.ts
-var isFipsRegion = /* @__PURE__ */ __name((region) => typeof region === "string" && (region.startsWith("fips-") || region.endsWith("-fips")), "isFipsRegion");
-
-// src/regionConfig/getRealRegion.ts
-var getRealRegion = /* @__PURE__ */ __name((region) => isFipsRegion(region) ? ["fips-aws-global", "aws-fips"].includes(region) ? "us-east-1" : region.replace(/fips-(dkr-|prod-)?|-fips/, "") : region, "getRealRegion");
-
-// src/regionConfig/resolveRegionConfig.ts
-var resolveRegionConfig = /* @__PURE__ */ __name((input) => {
-  const { region, useFipsEndpoint } = input;
-  if (!region) {
-    throw new Error("Region is missing");
-  }
-  return Object.assign(input, {
-    region: /* @__PURE__ */ __name(async () => {
-      if (typeof region === "string") {
-        return getRealRegion(region);
-      }
-      const providedRegion = await region();
-      return getRealRegion(providedRegion);
-    }, "region"),
-    useFipsEndpoint: /* @__PURE__ */ __name(async () => {
-      const providedRegion = typeof region === "string" ? region : await region();
-      if (isFipsRegion(providedRegion)) {
-        return true;
-      }
-      return typeof useFipsEndpoint !== "function" ? Promise.resolve(!!useFipsEndpoint) : useFipsEndpoint();
-    }, "useFipsEndpoint")
-  });
-}, "resolveRegionConfig");
-// Annotate the CommonJS export names for ESM import in node:
-
-0 && (0);
-
 
 
 /***/ }),
 
 /***/ 3068:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  ConditionObject: () => import_util_endpoints.ConditionObject,
-  DeprecatedObject: () => import_util_endpoints.DeprecatedObject,
-  EndpointError: () => import_util_endpoints.EndpointError,
-  EndpointObject: () => import_util_endpoints.EndpointObject,
-  EndpointObjectHeaders: () => import_util_endpoints.EndpointObjectHeaders,
-  EndpointObjectProperties: () => import_util_endpoints.EndpointObjectProperties,
-  EndpointParams: () => import_util_endpoints.EndpointParams,
-  EndpointResolverOptions: () => import_util_endpoints.EndpointResolverOptions,
-  EndpointRuleObject: () => import_util_endpoints.EndpointRuleObject,
-  ErrorRuleObject: () => import_util_endpoints.ErrorRuleObject,
-  EvaluateOptions: () => import_util_endpoints.EvaluateOptions,
-  Expression: () => import_util_endpoints.Expression,
-  FunctionArgv: () => import_util_endpoints.FunctionArgv,
-  FunctionObject: () => import_util_endpoints.FunctionObject,
-  FunctionReturn: () => import_util_endpoints.FunctionReturn,
-  ParameterObject: () => import_util_endpoints.ParameterObject,
-  ReferenceObject: () => import_util_endpoints.ReferenceObject,
-  ReferenceRecord: () => import_util_endpoints.ReferenceRecord,
-  RuleSetObject: () => import_util_endpoints.RuleSetObject,
-  RuleSetRules: () => import_util_endpoints.RuleSetRules,
-  TreeRuleObject: () => import_util_endpoints.TreeRuleObject,
-  awsEndpointFunctions: () => awsEndpointFunctions,
-  getUserAgentPrefix: () => getUserAgentPrefix,
-  isIpAddress: () => import_util_endpoints.isIpAddress,
-  partition: () => partition,
-  resolveDefaultAwsRegionalEndpointsConfig: () => resolveDefaultAwsRegionalEndpointsConfig,
-  resolveEndpoint: () => import_util_endpoints.resolveEndpoint,
-  setPartitionInfo: () => setPartitionInfo,
-  toEndpointV1: () => toEndpointV1,
-  useDefaultPartitionInfo: () => useDefaultPartitionInfo
-});
-module.exports = __toCommonJS(index_exports);
+var utilEndpoints = __nccwpck_require__(9674);
+var urlParser = __nccwpck_require__(4494);
 
-// src/aws.ts
-
-
-// src/lib/aws/isVirtualHostableS3Bucket.ts
-
-
-// src/lib/isIpAddress.ts
-var import_util_endpoints = __nccwpck_require__(9674);
-
-// src/lib/aws/isVirtualHostableS3Bucket.ts
-var isVirtualHostableS3Bucket = /* @__PURE__ */ __name((value, allowSubDomains = false) => {
-  if (allowSubDomains) {
-    for (const label of value.split(".")) {
-      if (!isVirtualHostableS3Bucket(label)) {
+const isVirtualHostableS3Bucket = (value, allowSubDomains = false) => {
+    if (allowSubDomains) {
+        for (const label of value.split(".")) {
+            if (!isVirtualHostableS3Bucket(label)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (!utilEndpoints.isValidHostLabel(value)) {
         return false;
-      }
+    }
+    if (value.length < 3 || value.length > 63) {
+        return false;
+    }
+    if (value !== value.toLowerCase()) {
+        return false;
+    }
+    if (utilEndpoints.isIpAddress(value)) {
+        return false;
     }
     return true;
-  }
-  if (!(0, import_util_endpoints.isValidHostLabel)(value)) {
-    return false;
-  }
-  if (value.length < 3 || value.length > 63) {
-    return false;
-  }
-  if (value !== value.toLowerCase()) {
-    return false;
-  }
-  if ((0, import_util_endpoints.isIpAddress)(value)) {
-    return false;
-  }
-  return true;
-}, "isVirtualHostableS3Bucket");
-
-// src/lib/aws/parseArn.ts
-var ARN_DELIMITER = ":";
-var RESOURCE_DELIMITER = "/";
-var parseArn = /* @__PURE__ */ __name((value) => {
-  const segments = value.split(ARN_DELIMITER);
-  if (segments.length < 6) return null;
-  const [arn, partition2, service, region, accountId, ...resourcePath] = segments;
-  if (arn !== "arn" || partition2 === "" || service === "" || resourcePath.join(ARN_DELIMITER) === "") return null;
-  const resourceId = resourcePath.map((resource) => resource.split(RESOURCE_DELIMITER)).flat();
-  return {
-    partition: partition2,
-    service,
-    region,
-    accountId,
-    resourceId
-  };
-}, "parseArn");
-
-// src/lib/aws/partitions.json
-var partitions_default = {
-  partitions: [{
-    id: "aws",
-    outputs: {
-      dnsSuffix: "amazonaws.com",
-      dualStackDnsSuffix: "api.aws",
-      implicitGlobalRegion: "us-east-1",
-      name: "aws",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^(us|eu|ap|sa|ca|me|af|il|mx)\\-\\w+\\-\\d+$",
-    regions: {
-      "af-south-1": {
-        description: "Africa (Cape Town)"
-      },
-      "ap-east-1": {
-        description: "Asia Pacific (Hong Kong)"
-      },
-      "ap-east-2": {
-        description: "Asia Pacific (Taipei)"
-      },
-      "ap-northeast-1": {
-        description: "Asia Pacific (Tokyo)"
-      },
-      "ap-northeast-2": {
-        description: "Asia Pacific (Seoul)"
-      },
-      "ap-northeast-3": {
-        description: "Asia Pacific (Osaka)"
-      },
-      "ap-south-1": {
-        description: "Asia Pacific (Mumbai)"
-      },
-      "ap-south-2": {
-        description: "Asia Pacific (Hyderabad)"
-      },
-      "ap-southeast-1": {
-        description: "Asia Pacific (Singapore)"
-      },
-      "ap-southeast-2": {
-        description: "Asia Pacific (Sydney)"
-      },
-      "ap-southeast-3": {
-        description: "Asia Pacific (Jakarta)"
-      },
-      "ap-southeast-4": {
-        description: "Asia Pacific (Melbourne)"
-      },
-      "ap-southeast-5": {
-        description: "Asia Pacific (Malaysia)"
-      },
-      "ap-southeast-6": {
-        description: "Asia Pacific (New Zealand)"
-      },
-      "ap-southeast-7": {
-        description: "Asia Pacific (Thailand)"
-      },
-      "aws-global": {
-        description: "aws global region"
-      },
-      "ca-central-1": {
-        description: "Canada (Central)"
-      },
-      "ca-west-1": {
-        description: "Canada West (Calgary)"
-      },
-      "eu-central-1": {
-        description: "Europe (Frankfurt)"
-      },
-      "eu-central-2": {
-        description: "Europe (Zurich)"
-      },
-      "eu-north-1": {
-        description: "Europe (Stockholm)"
-      },
-      "eu-south-1": {
-        description: "Europe (Milan)"
-      },
-      "eu-south-2": {
-        description: "Europe (Spain)"
-      },
-      "eu-west-1": {
-        description: "Europe (Ireland)"
-      },
-      "eu-west-2": {
-        description: "Europe (London)"
-      },
-      "eu-west-3": {
-        description: "Europe (Paris)"
-      },
-      "il-central-1": {
-        description: "Israel (Tel Aviv)"
-      },
-      "me-central-1": {
-        description: "Middle East (UAE)"
-      },
-      "me-south-1": {
-        description: "Middle East (Bahrain)"
-      },
-      "mx-central-1": {
-        description: "Mexico (Central)"
-      },
-      "sa-east-1": {
-        description: "South America (Sao Paulo)"
-      },
-      "us-east-1": {
-        description: "US East (N. Virginia)"
-      },
-      "us-east-2": {
-        description: "US East (Ohio)"
-      },
-      "us-west-1": {
-        description: "US West (N. California)"
-      },
-      "us-west-2": {
-        description: "US West (Oregon)"
-      }
-    }
-  }, {
-    id: "aws-cn",
-    outputs: {
-      dnsSuffix: "amazonaws.com.cn",
-      dualStackDnsSuffix: "api.amazonwebservices.com.cn",
-      implicitGlobalRegion: "cn-northwest-1",
-      name: "aws-cn",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^cn\\-\\w+\\-\\d+$",
-    regions: {
-      "aws-cn-global": {
-        description: "aws-cn global region"
-      },
-      "cn-north-1": {
-        description: "China (Beijing)"
-      },
-      "cn-northwest-1": {
-        description: "China (Ningxia)"
-      }
-    }
-  }, {
-    id: "aws-eusc",
-    outputs: {
-      dnsSuffix: "amazonaws.eu",
-      dualStackDnsSuffix: "api.amazonwebservices.eu",
-      implicitGlobalRegion: "eusc-de-east-1",
-      name: "aws-eusc",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^eusc\\-(de)\\-\\w+\\-\\d+$",
-    regions: {
-      "eusc-de-east-1": {
-        description: "EU (Germany)"
-      }
-    }
-  }, {
-    id: "aws-iso",
-    outputs: {
-      dnsSuffix: "c2s.ic.gov",
-      dualStackDnsSuffix: "api.aws.ic.gov",
-      implicitGlobalRegion: "us-iso-east-1",
-      name: "aws-iso",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^us\\-iso\\-\\w+\\-\\d+$",
-    regions: {
-      "aws-iso-global": {
-        description: "aws-iso global region"
-      },
-      "us-iso-east-1": {
-        description: "US ISO East"
-      },
-      "us-iso-west-1": {
-        description: "US ISO WEST"
-      }
-    }
-  }, {
-    id: "aws-iso-b",
-    outputs: {
-      dnsSuffix: "sc2s.sgov.gov",
-      dualStackDnsSuffix: "api.aws.scloud",
-      implicitGlobalRegion: "us-isob-east-1",
-      name: "aws-iso-b",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^us\\-isob\\-\\w+\\-\\d+$",
-    regions: {
-      "aws-iso-b-global": {
-        description: "aws-iso-b global region"
-      },
-      "us-isob-east-1": {
-        description: "US ISOB East (Ohio)"
-      }
-    }
-  }, {
-    id: "aws-iso-e",
-    outputs: {
-      dnsSuffix: "cloud.adc-e.uk",
-      dualStackDnsSuffix: "api.cloud-aws.adc-e.uk",
-      implicitGlobalRegion: "eu-isoe-west-1",
-      name: "aws-iso-e",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^eu\\-isoe\\-\\w+\\-\\d+$",
-    regions: {
-      "aws-iso-e-global": {
-        description: "aws-iso-e global region"
-      },
-      "eu-isoe-west-1": {
-        description: "EU ISOE West"
-      }
-    }
-  }, {
-    id: "aws-iso-f",
-    outputs: {
-      dnsSuffix: "csp.hci.ic.gov",
-      dualStackDnsSuffix: "api.aws.hci.ic.gov",
-      implicitGlobalRegion: "us-isof-south-1",
-      name: "aws-iso-f",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^us\\-isof\\-\\w+\\-\\d+$",
-    regions: {
-      "aws-iso-f-global": {
-        description: "aws-iso-f global region"
-      },
-      "us-isof-east-1": {
-        description: "US ISOF EAST"
-      },
-      "us-isof-south-1": {
-        description: "US ISOF SOUTH"
-      }
-    }
-  }, {
-    id: "aws-us-gov",
-    outputs: {
-      dnsSuffix: "amazonaws.com",
-      dualStackDnsSuffix: "api.aws",
-      implicitGlobalRegion: "us-gov-west-1",
-      name: "aws-us-gov",
-      supportsDualStack: true,
-      supportsFIPS: true
-    },
-    regionRegex: "^us\\-gov\\-\\w+\\-\\d+$",
-    regions: {
-      "aws-us-gov-global": {
-        description: "aws-us-gov global region"
-      },
-      "us-gov-east-1": {
-        description: "AWS GovCloud (US-East)"
-      },
-      "us-gov-west-1": {
-        description: "AWS GovCloud (US-West)"
-      }
-    }
-  }],
-  version: "1.1"
 };
 
-// src/lib/aws/partition.ts
-var selectedPartitionsInfo = partitions_default;
-var selectedUserAgentPrefix = "";
-var partition = /* @__PURE__ */ __name((value) => {
-  const { partitions } = selectedPartitionsInfo;
-  for (const partition2 of partitions) {
-    const { regions, outputs } = partition2;
-    for (const [region, regionData] of Object.entries(regions)) {
-      if (region === value) {
-        return {
-          ...outputs,
-          ...regionData
-        };
-      }
-    }
-  }
-  for (const partition2 of partitions) {
-    const { regionRegex, outputs } = partition2;
-    if (new RegExp(regionRegex).test(value)) {
-      return {
-        ...outputs
-      };
-    }
-  }
-  const DEFAULT_PARTITION = partitions.find((partition2) => partition2.id === "aws");
-  if (!DEFAULT_PARTITION) {
-    throw new Error(
-      "Provided region was not found in the partition array or regex, and default partition with id 'aws' doesn't exist."
-    );
-  }
-  return {
-    ...DEFAULT_PARTITION.outputs
-  };
-}, "partition");
-var setPartitionInfo = /* @__PURE__ */ __name((partitionsInfo, userAgentPrefix = "") => {
-  selectedPartitionsInfo = partitionsInfo;
-  selectedUserAgentPrefix = userAgentPrefix;
-}, "setPartitionInfo");
-var useDefaultPartitionInfo = /* @__PURE__ */ __name(() => {
-  setPartitionInfo(partitions_default, "");
-}, "useDefaultPartitionInfo");
-var getUserAgentPrefix = /* @__PURE__ */ __name(() => selectedUserAgentPrefix, "getUserAgentPrefix");
-
-// src/aws.ts
-var awsEndpointFunctions = {
-  isVirtualHostableS3Bucket,
-  parseArn,
-  partition
-};
-import_util_endpoints.customEndpointFunctions.aws = awsEndpointFunctions;
-
-// src/resolveDefaultAwsRegionalEndpointsConfig.ts
-var import_url_parser = __nccwpck_require__(4494);
-var resolveDefaultAwsRegionalEndpointsConfig = /* @__PURE__ */ __name((input) => {
-  if (typeof input.endpointProvider !== "function") {
-    throw new Error("@aws-sdk/util-endpoint - endpointProvider and endpoint missing in config for this client.");
-  }
-  const { endpoint } = input;
-  if (endpoint === void 0) {
-    input.endpoint = async () => {
-      return toEndpointV1(
-        input.endpointProvider(
-          {
-            Region: typeof input.region === "function" ? await input.region() : input.region,
-            UseDualStack: typeof input.useDualstackEndpoint === "function" ? await input.useDualstackEndpoint() : input.useDualstackEndpoint,
-            UseFIPS: typeof input.useFipsEndpoint === "function" ? await input.useFipsEndpoint() : input.useFipsEndpoint,
-            Endpoint: void 0
-          },
-          { logger: input.logger }
-        )
-      );
+const ARN_DELIMITER = ":";
+const RESOURCE_DELIMITER = "/";
+const parseArn = (value) => {
+    const segments = value.split(ARN_DELIMITER);
+    if (segments.length < 6)
+        return null;
+    const [arn, partition, service, region, accountId, ...resourcePath] = segments;
+    if (arn !== "arn" || partition === "" || service === "" || resourcePath.join(ARN_DELIMITER) === "")
+        return null;
+    const resourceId = resourcePath.map((resource) => resource.split(RESOURCE_DELIMITER)).flat();
+    return {
+        partition,
+        service,
+        region,
+        accountId,
+        resourceId,
     };
-  }
-  return input;
-}, "resolveDefaultAwsRegionalEndpointsConfig");
-var toEndpointV1 = /* @__PURE__ */ __name((endpoint) => (0, import_url_parser.parseUrl)(endpoint.url), "toEndpointV1");
+};
 
-// src/resolveEndpoint.ts
+var partitions = [
+	{
+		id: "aws",
+		outputs: {
+			dnsSuffix: "amazonaws.com",
+			dualStackDnsSuffix: "api.aws",
+			implicitGlobalRegion: "us-east-1",
+			name: "aws",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^(us|eu|ap|sa|ca|me|af|il|mx)\\-\\w+\\-\\d+$",
+		regions: {
+			"af-south-1": {
+				description: "Africa (Cape Town)"
+			},
+			"ap-east-1": {
+				description: "Asia Pacific (Hong Kong)"
+			},
+			"ap-east-2": {
+				description: "Asia Pacific (Taipei)"
+			},
+			"ap-northeast-1": {
+				description: "Asia Pacific (Tokyo)"
+			},
+			"ap-northeast-2": {
+				description: "Asia Pacific (Seoul)"
+			},
+			"ap-northeast-3": {
+				description: "Asia Pacific (Osaka)"
+			},
+			"ap-south-1": {
+				description: "Asia Pacific (Mumbai)"
+			},
+			"ap-south-2": {
+				description: "Asia Pacific (Hyderabad)"
+			},
+			"ap-southeast-1": {
+				description: "Asia Pacific (Singapore)"
+			},
+			"ap-southeast-2": {
+				description: "Asia Pacific (Sydney)"
+			},
+			"ap-southeast-3": {
+				description: "Asia Pacific (Jakarta)"
+			},
+			"ap-southeast-4": {
+				description: "Asia Pacific (Melbourne)"
+			},
+			"ap-southeast-5": {
+				description: "Asia Pacific (Malaysia)"
+			},
+			"ap-southeast-6": {
+				description: "Asia Pacific (New Zealand)"
+			},
+			"ap-southeast-7": {
+				description: "Asia Pacific (Thailand)"
+			},
+			"aws-global": {
+				description: "aws global region"
+			},
+			"ca-central-1": {
+				description: "Canada (Central)"
+			},
+			"ca-west-1": {
+				description: "Canada West (Calgary)"
+			},
+			"eu-central-1": {
+				description: "Europe (Frankfurt)"
+			},
+			"eu-central-2": {
+				description: "Europe (Zurich)"
+			},
+			"eu-north-1": {
+				description: "Europe (Stockholm)"
+			},
+			"eu-south-1": {
+				description: "Europe (Milan)"
+			},
+			"eu-south-2": {
+				description: "Europe (Spain)"
+			},
+			"eu-west-1": {
+				description: "Europe (Ireland)"
+			},
+			"eu-west-2": {
+				description: "Europe (London)"
+			},
+			"eu-west-3": {
+				description: "Europe (Paris)"
+			},
+			"il-central-1": {
+				description: "Israel (Tel Aviv)"
+			},
+			"me-central-1": {
+				description: "Middle East (UAE)"
+			},
+			"me-south-1": {
+				description: "Middle East (Bahrain)"
+			},
+			"mx-central-1": {
+				description: "Mexico (Central)"
+			},
+			"sa-east-1": {
+				description: "South America (Sao Paulo)"
+			},
+			"us-east-1": {
+				description: "US East (N. Virginia)"
+			},
+			"us-east-2": {
+				description: "US East (Ohio)"
+			},
+			"us-west-1": {
+				description: "US West (N. California)"
+			},
+			"us-west-2": {
+				description: "US West (Oregon)"
+			}
+		}
+	},
+	{
+		id: "aws-cn",
+		outputs: {
+			dnsSuffix: "amazonaws.com.cn",
+			dualStackDnsSuffix: "api.amazonwebservices.com.cn",
+			implicitGlobalRegion: "cn-northwest-1",
+			name: "aws-cn",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^cn\\-\\w+\\-\\d+$",
+		regions: {
+			"aws-cn-global": {
+				description: "aws-cn global region"
+			},
+			"cn-north-1": {
+				description: "China (Beijing)"
+			},
+			"cn-northwest-1": {
+				description: "China (Ningxia)"
+			}
+		}
+	},
+	{
+		id: "aws-eusc",
+		outputs: {
+			dnsSuffix: "amazonaws.eu",
+			dualStackDnsSuffix: "api.amazonwebservices.eu",
+			implicitGlobalRegion: "eusc-de-east-1",
+			name: "aws-eusc",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^eusc\\-(de)\\-\\w+\\-\\d+$",
+		regions: {
+			"eusc-de-east-1": {
+				description: "EU (Germany)"
+			}
+		}
+	},
+	{
+		id: "aws-iso",
+		outputs: {
+			dnsSuffix: "c2s.ic.gov",
+			dualStackDnsSuffix: "api.aws.ic.gov",
+			implicitGlobalRegion: "us-iso-east-1",
+			name: "aws-iso",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^us\\-iso\\-\\w+\\-\\d+$",
+		regions: {
+			"aws-iso-global": {
+				description: "aws-iso global region"
+			},
+			"us-iso-east-1": {
+				description: "US ISO East"
+			},
+			"us-iso-west-1": {
+				description: "US ISO WEST"
+			}
+		}
+	},
+	{
+		id: "aws-iso-b",
+		outputs: {
+			dnsSuffix: "sc2s.sgov.gov",
+			dualStackDnsSuffix: "api.aws.scloud",
+			implicitGlobalRegion: "us-isob-east-1",
+			name: "aws-iso-b",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^us\\-isob\\-\\w+\\-\\d+$",
+		regions: {
+			"aws-iso-b-global": {
+				description: "aws-iso-b global region"
+			},
+			"us-isob-east-1": {
+				description: "US ISOB East (Ohio)"
+			},
+			"us-isob-west-1": {
+				description: "US ISOB West"
+			}
+		}
+	},
+	{
+		id: "aws-iso-e",
+		outputs: {
+			dnsSuffix: "cloud.adc-e.uk",
+			dualStackDnsSuffix: "api.cloud-aws.adc-e.uk",
+			implicitGlobalRegion: "eu-isoe-west-1",
+			name: "aws-iso-e",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^eu\\-isoe\\-\\w+\\-\\d+$",
+		regions: {
+			"aws-iso-e-global": {
+				description: "aws-iso-e global region"
+			},
+			"eu-isoe-west-1": {
+				description: "EU ISOE West"
+			}
+		}
+	},
+	{
+		id: "aws-iso-f",
+		outputs: {
+			dnsSuffix: "csp.hci.ic.gov",
+			dualStackDnsSuffix: "api.aws.hci.ic.gov",
+			implicitGlobalRegion: "us-isof-south-1",
+			name: "aws-iso-f",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^us\\-isof\\-\\w+\\-\\d+$",
+		regions: {
+			"aws-iso-f-global": {
+				description: "aws-iso-f global region"
+			},
+			"us-isof-east-1": {
+				description: "US ISOF EAST"
+			},
+			"us-isof-south-1": {
+				description: "US ISOF SOUTH"
+			}
+		}
+	},
+	{
+		id: "aws-us-gov",
+		outputs: {
+			dnsSuffix: "amazonaws.com",
+			dualStackDnsSuffix: "api.aws",
+			implicitGlobalRegion: "us-gov-west-1",
+			name: "aws-us-gov",
+			supportsDualStack: true,
+			supportsFIPS: true
+		},
+		regionRegex: "^us\\-gov\\-\\w+\\-\\d+$",
+		regions: {
+			"aws-us-gov-global": {
+				description: "aws-us-gov global region"
+			},
+			"us-gov-east-1": {
+				description: "AWS GovCloud (US-East)"
+			},
+			"us-gov-west-1": {
+				description: "AWS GovCloud (US-West)"
+			}
+		}
+	}
+];
+var version = "1.1";
+var partitionsInfo = {
+	partitions: partitions,
+	version: version
+};
 
+let selectedPartitionsInfo = partitionsInfo;
+let selectedUserAgentPrefix = "";
+const partition = (value) => {
+    const { partitions } = selectedPartitionsInfo;
+    for (const partition of partitions) {
+        const { regions, outputs } = partition;
+        for (const [region, regionData] of Object.entries(regions)) {
+            if (region === value) {
+                return {
+                    ...outputs,
+                    ...regionData,
+                };
+            }
+        }
+    }
+    for (const partition of partitions) {
+        const { regionRegex, outputs } = partition;
+        if (new RegExp(regionRegex).test(value)) {
+            return {
+                ...outputs,
+            };
+        }
+    }
+    const DEFAULT_PARTITION = partitions.find((partition) => partition.id === "aws");
+    if (!DEFAULT_PARTITION) {
+        throw new Error("Provided region was not found in the partition array or regex," +
+            " and default partition with id 'aws' doesn't exist.");
+    }
+    return {
+        ...DEFAULT_PARTITION.outputs,
+    };
+};
+const setPartitionInfo = (partitionsInfo, userAgentPrefix = "") => {
+    selectedPartitionsInfo = partitionsInfo;
+    selectedUserAgentPrefix = userAgentPrefix;
+};
+const useDefaultPartitionInfo = () => {
+    setPartitionInfo(partitionsInfo, "");
+};
+const getUserAgentPrefix = () => selectedUserAgentPrefix;
 
-// src/types/EndpointError.ts
+const awsEndpointFunctions = {
+    isVirtualHostableS3Bucket: isVirtualHostableS3Bucket,
+    parseArn: parseArn,
+    partition: partition,
+};
+utilEndpoints.customEndpointFunctions.aws = awsEndpointFunctions;
 
+const resolveDefaultAwsRegionalEndpointsConfig = (input) => {
+    if (typeof input.endpointProvider !== "function") {
+        throw new Error("@aws-sdk/util-endpoint - endpointProvider and endpoint missing in config for this client.");
+    }
+    const { endpoint } = input;
+    if (endpoint === undefined) {
+        input.endpoint = async () => {
+            return toEndpointV1(input.endpointProvider({
+                Region: typeof input.region === "function" ? await input.region() : input.region,
+                UseDualStack: typeof input.useDualstackEndpoint === "function"
+                    ? await input.useDualstackEndpoint()
+                    : input.useDualstackEndpoint,
+                UseFIPS: typeof input.useFipsEndpoint === "function" ? await input.useFipsEndpoint() : input.useFipsEndpoint,
+                Endpoint: undefined,
+            }, { logger: input.logger }));
+        };
+    }
+    return input;
+};
+const toEndpointV1 = (endpoint) => urlParser.parseUrl(endpoint.url);
 
-// src/types/EndpointRuleObject.ts
-
-
-// src/types/ErrorRuleObject.ts
-
-
-// src/types/RuleSetObject.ts
-
-
-// src/types/TreeRuleObject.ts
-
-
-// src/types/shared.ts
-
-// Annotate the CommonJS export names for ESM import in node:
-
-0 && (0);
-
+Object.defineProperty(exports, "EndpointError", ({
+    enumerable: true,
+    get: function () { return utilEndpoints.EndpointError; }
+}));
+Object.defineProperty(exports, "isIpAddress", ({
+    enumerable: true,
+    get: function () { return utilEndpoints.isIpAddress; }
+}));
+Object.defineProperty(exports, "resolveEndpoint", ({
+    enumerable: true,
+    get: function () { return utilEndpoints.resolveEndpoint; }
+}));
+exports.awsEndpointFunctions = awsEndpointFunctions;
+exports.getUserAgentPrefix = getUserAgentPrefix;
+exports.partition = partition;
+exports.resolveDefaultAwsRegionalEndpointsConfig = resolveDefaultAwsRegionalEndpointsConfig;
+exports.setPartitionInfo = setPartitionInfo;
+exports.toEndpointV1 = toEndpointV1;
+exports.useDefaultPartitionInfo = useDefaultPartitionInfo;
 
 
 /***/ }),
@@ -10351,183 +11994,133 @@ exports.defaultUserAgent = defaultUserAgent;
 /***/ }),
 
 /***/ 4274:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  XmlNode: () => XmlNode,
-  XmlText: () => XmlText,
-  parseXML: () => import_xml_parser.parseXML
-});
-module.exports = __toCommonJS(index_exports);
+var xmlParser = __nccwpck_require__(3343);
 
-// src/escape-attribute.ts
 function escapeAttribute(value) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-__name(escapeAttribute, "escapeAttribute");
 
-// src/escape-element.ts
 function escapeElement(value) {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&apos;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\r/g, "&#x0D;").replace(/\n/g, "&#x0A;").replace(/\u0085/g, "&#x85;").replace(/\u2028/, "&#x2028;");
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\r/g, "&#x0D;")
+        .replace(/\n/g, "&#x0A;")
+        .replace(/\u0085/g, "&#x85;")
+        .replace(/\u2028/, "&#x2028;");
 }
-__name(escapeElement, "escapeElement");
 
-// src/XmlText.ts
-var XmlText = class {
-  constructor(value) {
-    this.value = value;
-  }
-  static {
-    __name(this, "XmlText");
-  }
-  toString() {
-    return escapeElement("" + this.value);
-  }
-};
+class XmlText {
+    value;
+    constructor(value) {
+        this.value = value;
+    }
+    toString() {
+        return escapeElement("" + this.value);
+    }
+}
 
-// src/XmlNode.ts
-var XmlNode = class _XmlNode {
-  constructor(name, children = []) {
-    this.name = name;
-    this.children = children;
-  }
-  static {
-    __name(this, "XmlNode");
-  }
-  attributes = {};
-  static of(name, childText, withName) {
-    const node = new _XmlNode(name);
-    if (childText !== void 0) {
-      node.addChildNode(new XmlText(childText));
+class XmlNode {
+    name;
+    children;
+    attributes = {};
+    static of(name, childText, withName) {
+        const node = new XmlNode(name);
+        if (childText !== undefined) {
+            node.addChildNode(new XmlText(childText));
+        }
+        if (withName !== undefined) {
+            node.withName(withName);
+        }
+        return node;
     }
-    if (withName !== void 0) {
-      node.withName(withName);
+    constructor(name, children = []) {
+        this.name = name;
+        this.children = children;
     }
-    return node;
-  }
-  withName(name) {
-    this.name = name;
-    return this;
-  }
-  addAttribute(name, value) {
-    this.attributes[name] = value;
-    return this;
-  }
-  addChildNode(child) {
-    this.children.push(child);
-    return this;
-  }
-  removeAttribute(name) {
-    delete this.attributes[name];
-    return this;
-  }
-  /**
-   * @internal
-   * Alias of {@link XmlNode#withName(string)} for codegen brevity.
-   */
-  n(name) {
-    this.name = name;
-    return this;
-  }
-  /**
-   * @internal
-   * Alias of {@link XmlNode#addChildNode(string)} for codegen brevity.
-   */
-  c(child) {
-    this.children.push(child);
-    return this;
-  }
-  /**
-   * @internal
-   * Checked version of {@link XmlNode#addAttribute(string)} for codegen brevity.
-   */
-  a(name, value) {
-    if (value != null) {
-      this.attributes[name] = value;
+    withName(name) {
+        this.name = name;
+        return this;
     }
-    return this;
-  }
-  /**
-   * Create a child node.
-   * Used in serialization of string fields.
-   * @internal
-   */
-  cc(input, field, withName = field) {
-    if (input[field] != null) {
-      const node = _XmlNode.of(field, input[field]).withName(withName);
-      this.c(node);
+    addAttribute(name, value) {
+        this.attributes[name] = value;
+        return this;
     }
-  }
-  /**
-   * Creates list child nodes.
-   * @internal
-   */
-  l(input, listName, memberName, valueProvider) {
-    if (input[listName] != null) {
-      const nodes = valueProvider();
-      nodes.map((node) => {
-        node.withName(memberName);
-        this.c(node);
-      });
+    addChildNode(child) {
+        this.children.push(child);
+        return this;
     }
-  }
-  /**
-   * Creates list child nodes with container.
-   * @internal
-   */
-  lc(input, listName, memberName, valueProvider) {
-    if (input[listName] != null) {
-      const nodes = valueProvider();
-      const containerNode = new _XmlNode(memberName);
-      nodes.map((node) => {
-        containerNode.c(node);
-      });
-      this.c(containerNode);
+    removeAttribute(name) {
+        delete this.attributes[name];
+        return this;
     }
-  }
-  toString() {
-    const hasChildren = Boolean(this.children.length);
-    let xmlText = `<${this.name}`;
-    const attributes = this.attributes;
-    for (const attributeName of Object.keys(attributes)) {
-      const attribute = attributes[attributeName];
-      if (attribute != null) {
-        xmlText += ` ${attributeName}="${escapeAttribute("" + attribute)}"`;
-      }
+    n(name) {
+        this.name = name;
+        return this;
     }
-    return xmlText += !hasChildren ? "/>" : `>${this.children.map((c) => c.toString()).join("")}</${this.name}>`;
-  }
-};
+    c(child) {
+        this.children.push(child);
+        return this;
+    }
+    a(name, value) {
+        if (value != null) {
+            this.attributes[name] = value;
+        }
+        return this;
+    }
+    cc(input, field, withName = field) {
+        if (input[field] != null) {
+            const node = XmlNode.of(field, input[field]).withName(withName);
+            this.c(node);
+        }
+    }
+    l(input, listName, memberName, valueProvider) {
+        if (input[listName] != null) {
+            const nodes = valueProvider();
+            nodes.map((node) => {
+                node.withName(memberName);
+                this.c(node);
+            });
+        }
+    }
+    lc(input, listName, memberName, valueProvider) {
+        if (input[listName] != null) {
+            const nodes = valueProvider();
+            const containerNode = new XmlNode(memberName);
+            nodes.map((node) => {
+                containerNode.c(node);
+            });
+            this.c(containerNode);
+        }
+    }
+    toString() {
+        const hasChildren = Boolean(this.children.length);
+        let xmlText = `<${this.name}`;
+        const attributes = this.attributes;
+        for (const attributeName of Object.keys(attributes)) {
+            const attribute = attributes[attributeName];
+            if (attribute != null) {
+                xmlText += ` ${attributeName}="${escapeAttribute("" + attribute)}"`;
+            }
+        }
+        return (xmlText += !hasChildren ? "/>" : `>${this.children.map((c) => c.toString()).join("")}</${this.name}>`);
+    }
+}
 
-// src/index.ts
-var import_xml_parser = __nccwpck_require__(3343);
-// Annotate the CommonJS export names for ESM import in node:
-
-0 && (0);
-
+Object.defineProperty(exports, "parseXML", ({
+    enumerable: true,
+    get: function () { return xmlParser.parseXML; }
+}));
+exports.XmlNode = XmlNode;
+exports.XmlText = XmlText;
 
 
 /***/ }),
@@ -10558,15 +12151,14 @@ function parseXML(xmlString) {
 
 /***/ }),
 
-/***/ 7453:
+/***/ 9320:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.InvokeStore = void 0;
-const async_hooks_1 = __nccwpck_require__(290);
-// AWS_LAMBDA_NODEJS_NO_GLOBAL_AWSLAMBDA provides an escape hatch since we're modifying the global object which may not be expected to a customer's handler.
+
+var async_hooks = __nccwpck_require__(290);
+
 const noGlobalAwsLambda = process.env["AWS_LAMBDA_NODEJS_NO_GLOBAL_AWSLAMBDA"] === "1" ||
     process.env["AWS_LAMBDA_NODEJS_NO_GLOBAL_AWSLAMBDA"] === "true";
 if (!noGlobalAwsLambda) {
@@ -10575,37 +12167,21 @@ if (!noGlobalAwsLambda) {
 const PROTECTED_KEYS = {
     REQUEST_ID: Symbol("_AWS_LAMBDA_REQUEST_ID"),
     X_RAY_TRACE_ID: Symbol("_AWS_LAMBDA_X_RAY_TRACE_ID"),
+    TENANT_ID: Symbol("_AWS_LAMBDA_TENANT_ID"),
 };
-/**
- * InvokeStore implementation class
- */
 class InvokeStoreImpl {
-    static storage = new async_hooks_1.AsyncLocalStorage();
-    // Protected keys for Lambda context fields
+    static storage = new async_hooks.AsyncLocalStorage();
     static PROTECTED_KEYS = PROTECTED_KEYS;
-    /**
-     * Initialize and run code within an invoke context
-     */
     static run(context, fn) {
         return this.storage.run({ ...context }, fn);
     }
-    /**
-     * Get the complete current context
-     */
     static getContext() {
         return this.storage.getStore();
     }
-    /**
-     * Get a specific value from the context by key
-     */
     static get(key) {
         const context = this.storage.getStore();
         return context?.[key];
     }
-    /**
-     * Set a custom value in the current context
-     * Protected Lambda context fields cannot be overwritten
-     */
     static set(key, value) {
         if (this.isProtectedKey(key)) {
             throw new Error(`Cannot modify protected Lambda context field`);
@@ -10615,27 +12191,18 @@ class InvokeStoreImpl {
             context[key] = value;
         }
     }
-    /**
-     * Get the current request ID
-     */
     static getRequestId() {
         return this.get(this.PROTECTED_KEYS.REQUEST_ID) ?? "-";
     }
-    /**
-     * Get the current X-ray trace ID
-     */
     static getXRayTraceId() {
         return this.get(this.PROTECTED_KEYS.X_RAY_TRACE_ID);
     }
-    /**
-     * Check if we're currently within an invoke context
-     */
+    static getTenantId() {
+        return this.get(this.PROTECTED_KEYS.TENANT_ID);
+    }
     static hasContext() {
         return this.storage.getStore() !== undefined;
     }
-    /**
-     * Check if a key is protected (readonly Lambda context field)
-     */
     static isProtectedKey(key) {
         return (key === this.PROTECTED_KEYS.REQUEST_ID ||
             key === this.PROTECTED_KEYS.X_RAY_TRACE_ID);
@@ -10651,7 +12218,9 @@ else {
         globalThis.awslambda.InvokeStore = instance;
     }
 }
-exports.InvokeStore = instance;
+const InvokeStore = instance;
+
+exports.InvokeStore = InvokeStore;
 
 
 /***/ }),
@@ -10664,6 +12233,7 @@ exports.InvokeStore = instance;
 
 var utilConfigProvider = __nccwpck_require__(6716);
 var utilMiddleware = __nccwpck_require__(6324);
+var utilEndpoints = __nccwpck_require__(9674);
 
 const ENV_USE_DUALSTACK_ENDPOINT = "AWS_USE_DUALSTACK_ENDPOINT";
 const CONFIG_USE_DUALSTACK_ENDPOINT = "use_dualstack_endpoint";
@@ -10735,6 +12305,21 @@ const NODE_REGION_CONFIG_FILE_OPTIONS = {
     preferredFile: "credentials",
 };
 
+const validRegions = new Set();
+const checkRegion = (region, check = utilEndpoints.isValidHostLabel) => {
+    if (!validRegions.has(region) && !check(region)) {
+        if (region === "*") {
+            console.warn(`@smithy/config-resolver WARN - Please use the caller region instead of "*". See "sigv4a" in https://github.com/aws/aws-sdk-js-v3/blob/main/supplemental-docs/CLIENTS.md.`);
+        }
+        else {
+            throw new Error(`Region not accepted: region="${region}" is not a valid hostname component.`);
+        }
+    }
+    else {
+        validRegions.add(region);
+    }
+};
+
 const isFipsRegion = (region) => typeof region === "string" && (region.startsWith("fips-") || region.endsWith("-fips"));
 
 const getRealRegion = (region) => isFipsRegion(region)
@@ -10750,11 +12335,10 @@ const resolveRegionConfig = (input) => {
     }
     return Object.assign(input, {
         region: async () => {
-            if (typeof region === "string") {
-                return getRealRegion(region);
-            }
-            const providedRegion = await region();
-            return getRealRegion(providedRegion);
+            const providedRegion = typeof region === "function" ? await region() : region;
+            const realRegion = getRealRegion(providedRegion);
+            checkRegion(realRegion);
+            return realRegion;
         },
         useFipsEndpoint: async () => {
             const providedRegion = typeof region === "string" ? region : await region();
@@ -11978,8 +13562,7 @@ const buildHttpRpcRequest = async (context, headers, path, resolvedHostname, bod
     return new protocolHttp.HttpRequest(contents);
 };
 
-class CborCodec {
-    serdeContext;
+class CborCodec extends protocols.SerdeContext {
     createSerializer() {
         const serializer = new CborShapeSerializer();
         serializer.setSerdeContext(this.serdeContext);
@@ -11990,16 +13573,9 @@ class CborCodec {
         deserializer.setSerdeContext(this.serdeContext);
         return deserializer;
     }
-    setSerdeContext(serdeContext) {
-        this.serdeContext = serdeContext;
-    }
 }
-class CborShapeSerializer {
-    serdeContext;
+class CborShapeSerializer extends protocols.SerdeContext {
     value;
-    setSerdeContext(serdeContext) {
-        this.serdeContext = serdeContext;
-    }
     write(schema, value) {
         this.value = this.serialize(schema, value);
     }
@@ -12073,11 +13649,7 @@ class CborShapeSerializer {
         return buffer;
     }
 }
-class CborShapeDeserializer {
-    serdeContext;
-    setSerdeContext(serdeContext) {
-        this.serdeContext = serdeContext;
-    }
+class CborShapeDeserializer extends protocols.SerdeContext {
     read(schema, bytes) {
         const data = cbor.deserialize(bytes);
         return this.readValue(schema, data);
@@ -12139,7 +13711,10 @@ class CborShapeDeserializer {
             }
             else if (ns.isStructSchema()) {
                 for (const [key, memberSchema] of ns.structIterator()) {
-                    newObject[key] = this.readValue(memberSchema, value[key]);
+                    const v = this.readValue(memberSchema, value[key]);
+                    if (v != null) {
+                        newObject[key] = v;
+                    }
                 }
             }
             return newObject;
@@ -12205,7 +13780,6 @@ class SmithyRpcV2CborProtocol extends protocols.RpcProtocol {
         }
         const errorMetadata = {
             $metadata: metadata,
-            $response: response,
             $fault: response.statusCode <= 500 ? "client" : "server",
         };
         const registry = schema.TypeRegistry.for(namespace);
@@ -12290,10 +13864,17 @@ function extendedEncodeURIComponent(str) {
     });
 }
 
-class HttpProtocol {
-    options;
+class SerdeContext {
     serdeContext;
+    setSerdeContext(serdeContext) {
+        this.serdeContext = serdeContext;
+    }
+}
+
+class HttpProtocol extends SerdeContext {
+    options;
     constructor(options) {
+        super();
         this.options = options;
     }
     getRequestType() {
@@ -12339,10 +13920,10 @@ class HttpProtocol {
         }
     }
     setHostPrefix(request, operationSchema, input) {
-        const operationNs = schema.NormalizedSchema.of(operationSchema);
         const inputNs = schema.NormalizedSchema.of(operationSchema.input);
-        if (operationNs.getMergedTraits().endpoint) {
-            let hostPrefix = operationNs.getMergedTraits().endpoint?.[0];
+        const opTraits = schema.translateTraits(operationSchema.traits ?? {});
+        if (opTraits.endpoint) {
+            let hostPrefix = opTraits.endpoint?.[0];
             if (typeof hostPrefix === "string") {
                 const hostLabelInputs = [...inputNs.structIterator()].filter(([, member]) => member.getMergedTraits().hostLabel);
                 for (const [name] of hostLabelInputs) {
@@ -12448,7 +14029,7 @@ class HttpBindingProtocol extends HttpProtocol {
         for (const [memberName, memberNs] of ns.structIterator()) {
             const memberTraits = memberNs.getMergedTraits() ?? {};
             const inputMemberValue = input[memberName];
-            if (inputMemberValue == null) {
+            if (inputMemberValue == null && !memberNs.isIdempotencyToken()) {
                 continue;
             }
             if (memberTraits.httpPayload) {
@@ -12857,14 +14438,11 @@ function determineTimestampFormat(ns, settings) {
     return bindingFormat ?? settings.timestampFormat.default;
 }
 
-class FromStringShapeDeserializer {
+class FromStringShapeDeserializer extends SerdeContext {
     settings;
-    serdeContext;
     constructor(settings) {
+        super();
         this.settings = settings;
-    }
-    setSerdeContext(serdeContext) {
-        this.serdeContext = serdeContext;
     }
     read(_schema, data) {
         const ns = schema.NormalizedSchema.of(_schema);
@@ -12921,11 +14499,11 @@ class FromStringShapeDeserializer {
     }
 }
 
-class HttpInterceptingShapeDeserializer {
+class HttpInterceptingShapeDeserializer extends SerdeContext {
     codecDeserializer;
     stringDeserializer;
-    serdeContext;
     constructor(codecDeserializer, codecSettings) {
+        super();
         this.codecDeserializer = codecDeserializer;
         this.stringDeserializer = new FromStringShapeDeserializer(codecSettings);
     }
@@ -12960,15 +14538,12 @@ class HttpInterceptingShapeDeserializer {
     }
 }
 
-class ToStringShapeSerializer {
+class ToStringShapeSerializer extends SerdeContext {
     settings;
     stringBuffer = "";
-    serdeContext = undefined;
     constructor(settings) {
+        super();
         this.settings = settings;
-    }
-    setSerdeContext(serdeContext) {
-        this.serdeContext = serdeContext;
     }
     write(schema$1, value) {
         const ns = schema.NormalizedSchema.of(schema$1);
@@ -13035,7 +14610,12 @@ class ToStringShapeSerializer {
                 this.stringBuffer = value;
                 break;
             default:
-                this.stringBuffer = String(value);
+                if (ns.isIdempotencyToken()) {
+                    this.stringBuffer = serde.generateIdempotencyToken();
+                }
+                else {
+                    this.stringBuffer = String(value);
+                }
         }
     }
     flush() {
@@ -13084,6 +14664,7 @@ exports.HttpInterceptingShapeSerializer = HttpInterceptingShapeSerializer;
 exports.HttpProtocol = HttpProtocol;
 exports.RequestBuilder = RequestBuilder;
 exports.RpcProtocol = RpcProtocol;
+exports.SerdeContext = SerdeContext;
 exports.ToStringShapeSerializer = ToStringShapeSerializer;
 exports.collectBody = collectBody;
 exports.determineTimestampFormat = determineTimestampFormat;
@@ -13110,11 +14691,20 @@ const deref = (schemaRef) => {
     return schemaRef;
 };
 
+const operation = (namespace, name, traits, input, output) => ({
+    name,
+    namespace,
+    traits,
+    input,
+    output,
+});
+
 const schemaDeserializationMiddleware = (config) => (next, context) => async (args) => {
     const { response } = await next(args);
     const { operationSchema } = utilMiddleware.getSmithyContext(context);
+    const [, ns, n, t, i, o] = operationSchema ?? [];
     try {
-        const parsed = await config.protocol.deserializeResponse(operationSchema, {
+        const parsed = await config.protocol.deserializeResponse(operation(ns, n, t, i, o), {
             ...config,
             ...context,
         }, response);
@@ -13126,6 +14716,9 @@ const schemaDeserializationMiddleware = (config) => (next, context) => async (ar
     catch (error) {
         Object.defineProperty(error, "$response", {
             value: response,
+            enumerable: false,
+            writable: false,
+            configurable: false,
         });
         if (!("$metadata" in error)) {
             const hint = `Deserialization error: to see the raw response, inspect the hidden field {error}.$response on this object.`;
@@ -13171,10 +14764,11 @@ const findHeader = (pattern, headers) => {
 
 const schemaSerializationMiddleware = (config) => (next, context) => async (args) => {
     const { operationSchema } = utilMiddleware.getSmithyContext(context);
+    const [, ns, n, t, i, o] = operationSchema ?? [];
     const endpoint = context.endpointV2?.url && config.urlParser
         ? async () => config.urlParser(context.endpointV2.url)
         : config.endpoint;
-    const request = await config.protocol.serializeRequest(operationSchema, args.input, {
+    const request = await config.protocol.serializeRequest(operation(ns, n, t, i, o), args.input, {
         ...config,
         ...context,
         endpoint,
@@ -13207,72 +14801,12 @@ function getSchemaSerdePlugin(config) {
     };
 }
 
-class TypeRegistry {
-    namespace;
-    schemas;
-    exceptions;
-    static registries = new Map();
-    constructor(namespace, schemas = new Map(), exceptions = new Map()) {
-        this.namespace = namespace;
-        this.schemas = schemas;
-        this.exceptions = exceptions;
-    }
-    static for(namespace) {
-        if (!TypeRegistry.registries.has(namespace)) {
-            TypeRegistry.registries.set(namespace, new TypeRegistry(namespace));
-        }
-        return TypeRegistry.registries.get(namespace);
-    }
-    register(shapeId, schema) {
-        const qualifiedName = this.normalizeShapeId(shapeId);
-        this.schemas.set(qualifiedName, schema);
-    }
-    getSchema(shapeId) {
-        const id = this.normalizeShapeId(shapeId);
-        if (!this.schemas.has(id)) {
-            throw new Error(`@smithy/core/schema - schema not found for ${id}`);
-        }
-        return this.schemas.get(id);
-    }
-    registerError(errorSchema, ctor) {
-        this.exceptions.set(errorSchema, ctor);
-    }
-    getErrorCtor(errorSchema) {
-        return this.exceptions.get(errorSchema);
-    }
-    getBaseException() {
-        for (const [id, schema] of this.schemas.entries()) {
-            if (id.startsWith("smithy.ts.sdk.synthetic.") && id.endsWith("ServiceException")) {
-                return schema;
-            }
-        }
-        return undefined;
-    }
-    find(predicate) {
-        return [...this.schemas.values()].find(predicate);
-    }
-    clear() {
-        this.schemas.clear();
-        this.exceptions.clear();
-    }
-    normalizeShapeId(shapeId) {
-        if (shapeId.includes("#")) {
-            return shapeId;
-        }
-        return this.namespace + "#" + shapeId;
-    }
-    getNamespace(shapeId) {
-        return this.normalizeShapeId(shapeId).split("#")[0];
-    }
-}
-
 class Schema {
     name;
     namespace;
     traits;
     static assign(instance, values) {
         const schema = Object.assign(instance, values);
-        TypeRegistry.for(schema.namespace).register(schema.name, schema);
         return schema;
     }
     static [Symbol.hasInstance](lhs) {
@@ -13405,7 +14939,7 @@ class NormalizedSchema {
         let _ref = ref;
         let schema = ref;
         this._isMemberSchema = false;
-        while (Array.isArray(_ref)) {
+        while (isMemberSchema(_ref)) {
             traitStack.push(_ref[1]);
             _ref = _ref[0];
             schema = deref(_ref);
@@ -13430,26 +14964,32 @@ class NormalizedSchema {
             return;
         }
         this.schema = deref(schema);
-        if (this.schema && typeof this.schema === "object") {
-            this.traits = this.schema?.traits ?? {};
+        if (isStaticSchema(this.schema)) {
+            this.name = `${this.schema[1]}#${this.schema[2]}`;
+            this.traits = this.schema[3];
         }
         else {
+            this.name = this.memberName ?? String(schema);
             this.traits = 0;
         }
-        this.name = (this.schema instanceof Schema ? this.schema.getName?.() : void 0) ?? this.memberName ?? String(schema);
         if (this._isMemberSchema && !memberName) {
             throw new Error(`@smithy/core/schema - NormalizedSchema member init ${this.getName(true)} missing member name.`);
         }
     }
     static [Symbol.hasInstance](lhs) {
-        return Schema[Symbol.hasInstance].bind(this)(lhs);
+        const isPrototype = this.prototype.isPrototypeOf(lhs);
+        if (!isPrototype && typeof lhs === "object" && lhs !== null) {
+            const ns = lhs;
+            return ns.symbol === this.symbol;
+        }
+        return isPrototype;
     }
     static of(ref) {
         const sc = deref(ref);
         if (sc instanceof NormalizedSchema) {
             return sc;
         }
-        if (Array.isArray(sc)) {
+        if (isMemberSchema(sc)) {
             const [ns, traits] = sc;
             if (ns instanceof NormalizedSchema) {
                 Object.assign(ns.getMergedTraits(), translateTraits(traits));
@@ -13460,7 +15000,11 @@ class NormalizedSchema {
         return new NormalizedSchema(sc);
     }
     getSchema() {
-        return deref(this.schema?.schemaRef ?? this.schema);
+        const sc = this.schema;
+        if (sc[0] === 0) {
+            return sc[4];
+        }
+        return sc;
     }
     getName(withNamespace = false) {
         const { name } = this;
@@ -13477,17 +15021,18 @@ class NormalizedSchema {
         const sc = this.getSchema();
         return typeof sc === "number"
             ? sc >= 64 && sc < 128
-            : sc instanceof ListSchema;
+            : sc[0] === 1;
     }
     isMapSchema() {
         const sc = this.getSchema();
         return typeof sc === "number"
             ? sc >= 128 && sc <= 0b1111_1111
-            : sc instanceof MapSchema;
+            : sc[0] === 2;
     }
     isStructSchema() {
         const sc = this.getSchema();
-        return (sc !== null && typeof sc === "object" && "members" in sc) || sc instanceof StructureSchema;
+        return (sc[0] === 3 ||
+            sc[0] === -3);
     }
     isBlobSchema() {
         const sc = this.getSchema();
@@ -13551,7 +15096,7 @@ class NormalizedSchema {
         const schema = this.getSchema();
         const memberSchema = isDoc
             ? 15
-            : schema?.keySchema ?? 0;
+            : schema[4] ?? 0;
         return member([memberSchema, 0], "key");
     }
     getValueSchema() {
@@ -13560,7 +15105,7 @@ class NormalizedSchema {
         const memberSchema = typeof sc === "number"
             ? 0b0011_1111 & sc
             : sc && typeof sc === "object" && (isMap || isList)
-                ? sc.valueSchema
+                ? sc[3 + sc[0]]
                 : isDoc
                     ? 15
                     : void 0;
@@ -13571,10 +15116,10 @@ class NormalizedSchema {
     }
     getMemberSchema(memberName) {
         const struct = this.getSchema();
-        if (this.isStructSchema() && struct.memberNames.includes(memberName)) {
-            const i = struct.memberNames.indexOf(memberName);
-            const memberSchema = struct.memberList[i];
-            return member(Array.isArray(memberSchema) ? memberSchema : [memberSchema, 0], memberName);
+        if (this.isStructSchema() && struct[4].includes(memberName)) {
+            const i = struct[4].indexOf(memberName);
+            const memberSchema = struct[5][i];
+            return member(isMemberSchema(memberSchema) ? memberSchema : [memberSchema, 0], memberName);
         }
         if (this.isDocumentSchema()) {
             return member([15, 0], memberName);
@@ -13609,8 +15154,8 @@ class NormalizedSchema {
             throw new Error("@smithy/core/schema - cannot iterate non-struct schema.");
         }
         const struct = this.getSchema();
-        for (let i = 0; i < struct.memberNames.length; ++i) {
-            yield [struct.memberNames[i], member([struct.memberList[i], 0], struct.memberNames[i])];
+        for (let i = 0; i < struct[4].length; ++i) {
+            yield [struct[4][i], member([struct[5][i], 0], struct[4][i])];
         }
     }
 }
@@ -13624,6 +15169,8 @@ function member(memberSchema, memberName) {
     const internalCtorAccess = NormalizedSchema;
     return new internalCtorAccess(memberSchema, memberName);
 }
+const isMemberSchema = (sc) => Array.isArray(sc) && sc.length === 2;
+const isStaticSchema = (sc) => Array.isArray(sc) && sc.length >= 5;
 
 class SimpleSchema extends Schema {
     static symbol = Symbol.for("@smithy/sim");
@@ -13633,6 +15180,12 @@ class SimpleSchema extends Schema {
     symbol = SimpleSchema.symbol;
 }
 const sim = (namespace, name, schemaRef, traits) => Schema.assign(new SimpleSchema(), {
+    name,
+    namespace,
+    traits,
+    schemaRef,
+});
+const simAdapter = (namespace, name, traits, schemaRef) => Schema.assign(new SimpleSchema(), {
     name,
     namespace,
     traits,
@@ -13656,6 +15209,72 @@ const SCHEMA = {
     MAP_MODIFIER: 0b1000_0000,
 };
 
+class TypeRegistry {
+    namespace;
+    schemas;
+    exceptions;
+    static registries = new Map();
+    constructor(namespace, schemas = new Map(), exceptions = new Map()) {
+        this.namespace = namespace;
+        this.schemas = schemas;
+        this.exceptions = exceptions;
+    }
+    static for(namespace) {
+        if (!TypeRegistry.registries.has(namespace)) {
+            TypeRegistry.registries.set(namespace, new TypeRegistry(namespace));
+        }
+        return TypeRegistry.registries.get(namespace);
+    }
+    register(shapeId, schema) {
+        const qualifiedName = this.normalizeShapeId(shapeId);
+        const registry = TypeRegistry.for(qualifiedName.split("#")[0]);
+        registry.schemas.set(qualifiedName, schema);
+    }
+    getSchema(shapeId) {
+        const id = this.normalizeShapeId(shapeId);
+        if (!this.schemas.has(id)) {
+            throw new Error(`@smithy/core/schema - schema not found for ${id}`);
+        }
+        return this.schemas.get(id);
+    }
+    registerError(es, ctor) {
+        const $error = es;
+        const registry = TypeRegistry.for($error[1]);
+        registry.schemas.set($error[1] + "#" + $error[2], $error);
+        registry.exceptions.set($error, ctor);
+    }
+    getErrorCtor(es) {
+        const $error = es;
+        const registry = TypeRegistry.for($error[1]);
+        return registry.exceptions.get($error);
+    }
+    getBaseException() {
+        for (const exceptionKey of this.exceptions.keys()) {
+            if (Array.isArray(exceptionKey)) {
+                const [, ns, name] = exceptionKey;
+                const id = ns + "#" + name;
+                if (id.startsWith("smithy.ts.sdk.synthetic.") && id.endsWith("ServiceException")) {
+                    return exceptionKey;
+                }
+            }
+        }
+        return undefined;
+    }
+    find(predicate) {
+        return [...this.schemas.values()].find(predicate);
+    }
+    clear() {
+        this.schemas.clear();
+        this.exceptions.clear();
+    }
+    normalizeShapeId(shapeId) {
+        if (shapeId.includes("#")) {
+            return shapeId;
+        }
+        return this.namespace + "#" + shapeId;
+    }
+}
+
 exports.ErrorSchema = ErrorSchema;
 exports.ListSchema = ListSchema;
 exports.MapSchema = MapSchema;
@@ -13670,11 +15289,14 @@ exports.deref = deref;
 exports.deserializerMiddlewareOption = deserializerMiddlewareOption;
 exports.error = error;
 exports.getSchemaSerdePlugin = getSchemaSerdePlugin;
+exports.isStaticSchema = isStaticSchema;
 exports.list = list;
 exports.map = map;
 exports.op = op;
+exports.operation = operation;
 exports.serializerMiddlewareOption = serializerMiddlewareOption;
 exports.sim = sim;
+exports.simAdapter = simAdapter;
 exports.struct = struct;
 exports.translateTraits = translateTraits;
 
@@ -14193,12 +15815,8 @@ const _parseRfc3339DateTimeWithOffset = (value) => {
     range(hours, 0, 23);
     range(minutes, 0, 59);
     range(seconds, 0, 60);
-    const date = new Date();
-    date.setUTCFullYear(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
-    date.setUTCHours(Number(hours));
-    date.setUTCMinutes(Number(minutes));
-    date.setUTCSeconds(Number(seconds));
-    date.setUTCMilliseconds(Number(ms) ? Math.round(parseFloat(`0.${ms}`) * 1000) : 0);
+    const date = new Date(Date.UTC(Number(yearStr), Number(monthStr) - 1, Number(dayStr), Number(hours), Number(minutes), Number(seconds), Number(ms) ? Math.round(parseFloat(`0.${ms}`) * 1000) : 0));
+    date.setUTCFullYear(Number(yearStr));
     if (offsetStr.toUpperCase() != "Z") {
         const [, sign, offsetH, offsetM] = /([+-])(\d\d):(\d\d)/.exec(offsetStr) || [void 0, "+", 0, 0];
         const scalar = sign === "-" ? 1 : -1;
@@ -14232,18 +15850,13 @@ const _parseRfc7231DateTime = (value) => {
         [, month, day, hour, minute, second, fraction, year] = matches;
     }
     if (year && second) {
-        const date = new Date();
-        date.setUTCFullYear(Number(year));
-        date.setUTCMonth(months.indexOf(month));
+        const timestamp = Date.UTC(Number(year), months.indexOf(month), Number(day), Number(hour), Number(minute), Number(second), fraction ? Math.round(parseFloat(`0.${fraction}`) * 1000) : 0);
         range(day, 1, 31);
-        date.setUTCDate(Number(day));
         range(hour, 0, 23);
-        date.setUTCHours(Number(hour));
         range(minute, 0, 59);
-        date.setUTCMinutes(Number(minute));
         range(second, 0, 60);
-        date.setUTCSeconds(Number(second));
-        date.setUTCMilliseconds(fraction ? Math.round(parseFloat(`0.${fraction}`) * 1000) : 0);
+        const date = new Date(timestamp);
+        date.setUTCFullYear(Number(year));
         return date;
     }
     throw new TypeError(`Invalid RFC7231 date-time value ${value}.`);
@@ -15444,6 +17057,9 @@ const deserializerMiddleware = (options, deserializer) => (next, context) => asy
     catch (error) {
         Object.defineProperty(error, "$response", {
             value: response,
+            enumerable: false,
+            writable: false,
+            configurable: false,
         });
         if (!("$metadata" in error)) {
             const hint = `Deserialization error: to see the raw response, inspect the hidden field {error}.$response on this object.`;
@@ -15932,7 +17548,7 @@ const setConnectionTimeout = (request, reject, timeoutInMs = 0) => {
     const registerTimeout = (offset) => {
         const timeoutId = timing.setTimeout(() => {
             request.destroy();
-            reject(Object.assign(new Error(`Socket timed out without establishing a connection within ${timeoutInMs} ms`), {
+            reject(Object.assign(new Error(`@smithy/node-http-handler - the request socket did not establish a connection with the server within the configured timeout of ${timeoutInMs} ms.`), {
                 name: "TimeoutError",
             }));
         }, timeoutInMs - offset);
@@ -15960,6 +17576,27 @@ const setConnectionTimeout = (request, reject, timeoutInMs = 0) => {
     return timing.setTimeout(registerTimeout.bind(null, DEFER_EVENT_LISTENER_TIME$2), DEFER_EVENT_LISTENER_TIME$2);
 };
 
+const setRequestTimeout = (req, reject, timeoutInMs = 0, throwOnRequestTimeout, logger) => {
+    if (timeoutInMs) {
+        return timing.setTimeout(() => {
+            let msg = `@smithy/node-http-handler - [${throwOnRequestTimeout ? "ERROR" : "WARN"}] a request has exceeded the configured ${timeoutInMs} ms requestTimeout.`;
+            if (throwOnRequestTimeout) {
+                const error = Object.assign(new Error(msg), {
+                    name: "TimeoutError",
+                    code: "ETIMEDOUT",
+                });
+                req.destroy(error);
+                reject(error);
+            }
+            else {
+                msg += ` Init client requestHandler with throwOnRequestTimeout=true to turn this into an error.`;
+                logger?.warn?.(msg);
+            }
+        }, timeoutInMs);
+    }
+    return -1;
+};
+
 const DEFER_EVENT_LISTENER_TIME$1 = 3000;
 const setSocketKeepAlive = (request, { keepAlive, keepAliveMsecs }, deferTimeMs = DEFER_EVENT_LISTENER_TIME$1) => {
     if (keepAlive !== true) {
@@ -15983,12 +17620,12 @@ const setSocketKeepAlive = (request, { keepAlive, keepAliveMsecs }, deferTimeMs 
 };
 
 const DEFER_EVENT_LISTENER_TIME = 3000;
-const setSocketTimeout = (request, reject, timeoutInMs = DEFAULT_REQUEST_TIMEOUT) => {
+const setSocketTimeout = (request, reject, timeoutInMs = 0) => {
     const registerTimeout = (offset) => {
         const timeout = timeoutInMs - offset;
         const onTimeout = () => {
             request.destroy();
-            reject(Object.assign(new Error(`Connection timed out after ${timeoutInMs} ms`), { name: "TimeoutError" }));
+            reject(Object.assign(new Error(`@smithy/node-http-handler - the request socket timed out after ${timeoutInMs} ms of inactivity (configured by client requestHandler).`), { name: "TimeoutError" }));
         };
         if (request.socket) {
             request.socket.setTimeout(timeout, onTimeout);
@@ -16006,12 +17643,12 @@ const setSocketTimeout = (request, reject, timeoutInMs = DEFAULT_REQUEST_TIMEOUT
 };
 
 const MIN_WAIT_TIME = 6_000;
-async function writeRequestBody(httpRequest, request, maxContinueTimeoutMs = MIN_WAIT_TIME) {
+async function writeRequestBody(httpRequest, request, maxContinueTimeoutMs = MIN_WAIT_TIME, externalAgent = false) {
     const headers = request.headers ?? {};
-    const expect = headers["Expect"] || headers["expect"];
+    const expect = headers.Expect || headers.expect;
     let timeoutId = -1;
     let sendBody = true;
-    if (expect === "100-continue") {
+    if (!externalAgent && expect === "100-continue") {
         sendBody = await Promise.race([
             new Promise((resolve) => {
                 timeoutId = Number(timing.setTimeout(() => resolve(true), Math.max(MIN_WAIT_TIME, maxContinueTimeoutMs)));
@@ -16065,6 +17702,7 @@ class NodeHttpHandler {
     config;
     configProvider;
     socketWarningTimestamp = 0;
+    externalAgent = false;
     metadata = { handlerProtocol: "http/1.1" };
     static create(instanceOrOptions) {
         if (typeof instanceOrOptions?.handle === "function") {
@@ -16110,21 +17748,25 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
         });
     }
     resolveDefaultConfig(options) {
-        const { requestTimeout, connectionTimeout, socketTimeout, socketAcquisitionWarningTimeout, httpAgent, httpsAgent } = options || {};
+        const { requestTimeout, connectionTimeout, socketTimeout, socketAcquisitionWarningTimeout, httpAgent, httpsAgent, throwOnRequestTimeout, } = options || {};
         const keepAlive = true;
         const maxSockets = 50;
         return {
             connectionTimeout,
-            requestTimeout: requestTimeout ?? socketTimeout,
+            requestTimeout,
+            socketTimeout,
             socketAcquisitionWarningTimeout,
+            throwOnRequestTimeout,
             httpAgent: (() => {
                 if (httpAgent instanceof http.Agent || typeof httpAgent?.destroy === "function") {
+                    this.externalAgent = true;
                     return httpAgent;
                 }
                 return new http.Agent({ keepAlive, maxSockets, ...httpAgent });
             })(),
             httpsAgent: (() => {
                 if (httpsAgent instanceof https.Agent || typeof httpsAgent?.destroy === "function") {
+                    this.externalAgent = true;
                     return httpsAgent;
                 }
                 return new https.Agent({ keepAlive, maxSockets, ...httpsAgent });
@@ -16141,6 +17783,7 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
             this.config = await this.configProvider;
         }
         return new Promise((_resolve, _reject) => {
+            const config = this.config;
             let writeRequestBodyPromise = undefined;
             const timeouts = [];
             const resolve = async (arg) => {
@@ -16153,9 +17796,6 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
                 timeouts.forEach(timing.clearTimeout);
                 _reject(arg);
             };
-            if (!this.config) {
-                throw new Error("Node HTTP request handler config is not resolved");
-            }
             if (abortSignal?.aborted) {
                 const abortError = new Error("Request aborted");
                 abortError.name = "AbortError";
@@ -16163,11 +17803,18 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
                 return;
             }
             const isSSL = request.protocol === "https:";
-            const agent = isSSL ? this.config.httpsAgent : this.config.httpAgent;
+            const headers = request.headers ?? {};
+            const expectContinue = (headers.Expect ?? headers.expect) === "100-continue";
+            let agent = isSSL ? config.httpsAgent : config.httpAgent;
+            if (expectContinue && !this.externalAgent) {
+                agent = new (isSSL ? https.Agent : http.Agent)({
+                    keepAlive: false,
+                    maxSockets: Infinity,
+                });
+            }
             timeouts.push(timing.setTimeout(() => {
-                this.socketWarningTimestamp = NodeHttpHandler.checkSocketUsage(agent, this.socketWarningTimestamp, this.config.logger);
-            }, this.config.socketAcquisitionWarningTimeout ??
-                (this.config.requestTimeout ?? 2000) + (this.config.connectionTimeout ?? 1000)));
+                this.socketWarningTimestamp = NodeHttpHandler.checkSocketUsage(agent, this.socketWarningTimestamp, config.logger);
+            }, config.socketAcquisitionWarningTimeout ?? (config.requestTimeout ?? 2000) + (config.connectionTimeout ?? 1000)));
             const queryString = querystringBuilder.buildQueryString(request.query || {});
             let auth = undefined;
             if (request.username != null || request.password != null) {
@@ -16232,9 +17879,10 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
                     abortSignal.onabort = onAbort;
                 }
             }
-            const effectiveRequestTimeout = requestTimeout ?? this.config.requestTimeout;
-            timeouts.push(setConnectionTimeout(req, reject, this.config.connectionTimeout));
-            timeouts.push(setSocketTimeout(req, reject, effectiveRequestTimeout));
+            const effectiveRequestTimeout = requestTimeout ?? config.requestTimeout;
+            timeouts.push(setConnectionTimeout(req, reject, config.connectionTimeout));
+            timeouts.push(setRequestTimeout(req, reject, effectiveRequestTimeout, config.throwOnRequestTimeout, config.logger ?? console));
+            timeouts.push(setSocketTimeout(req, reject, config.socketTimeout));
             const httpAgent = nodeHttpsOptions.agent;
             if (typeof httpAgent === "object" && "keepAlive" in httpAgent) {
                 timeouts.push(setSocketKeepAlive(req, {
@@ -16242,7 +17890,7 @@ or increase socketAcquisitionWarningTimeout=(millis) in the NodeHttpHandler conf
                     keepAliveMsecs: httpAgent.keepAliveMsecs,
                 }));
             }
-            writeRequestBodyPromise = writeRequestBody(req, request, effectiveRequestTimeout).catch((e) => {
+            writeRequestBodyPromise = writeRequestBody(req, request, effectiveRequestTimeout, this.externalAgent).catch((e) => {
                 timeouts.forEach(timing.clearTimeout);
                 return _reject(e);
             });
@@ -17120,16 +18768,15 @@ exports.getSSOTokenFilepath = getSSOTokenFilepath;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getSSOTokenFromFile = exports.tokenIntercept = void 0;
-const fs_1 = __nccwpck_require__(9896);
+const promises_1 = __nccwpck_require__(1943);
 const getSSOTokenFilepath_1 = __nccwpck_require__(269);
-const { readFile } = fs_1.promises;
 exports.tokenIntercept = {};
 const getSSOTokenFromFile = async (id) => {
     if (exports.tokenIntercept[id]) {
         return exports.tokenIntercept[id];
     }
     const ssoTokenFilepath = (0, getSSOTokenFilepath_1.getSSOTokenFilepath)(id);
-    const ssoTokenText = await readFile(ssoTokenFilepath, "utf8");
+    const ssoTokenText = await (0, promises_1.readFile)(ssoTokenFilepath, "utf8");
     return JSON.parse(ssoTokenText);
 };
 exports.getSSOTokenFromFile = getSSOTokenFromFile;
@@ -17148,11 +18795,13 @@ var getSSOTokenFilepath = __nccwpck_require__(269);
 var getSSOTokenFromFile = __nccwpck_require__(1326);
 var path = __nccwpck_require__(6928);
 var types = __nccwpck_require__(690);
-var slurpFile = __nccwpck_require__(4246);
+var readFile = __nccwpck_require__(6684);
 
 const ENV_PROFILE = "AWS_PROFILE";
 const DEFAULT_PROFILE = "default";
 const getProfileName = (init) => init.profile || process.env[ENV_PROFILE] || DEFAULT_PROFILE;
+
+const CONFIG_PREFIX_SEPARATOR = ".";
 
 const getConfigData = (data) => Object.entries(data)
     .filter(([key]) => {
@@ -17229,7 +18878,6 @@ const parseIni = (iniData) => {
 };
 
 const swallowError$1 = () => ({});
-const CONFIG_PREFIX_SEPARATOR = ".";
 const loadSharedConfigFiles = async (init = {}) => {
     const { filepath = getCredentialsFilepath(), configFilepath = getConfigFilepath() } = init;
     const homeDir = getHomeDir.getHomeDir();
@@ -17243,13 +18891,13 @@ const loadSharedConfigFiles = async (init = {}) => {
         resolvedConfigFilepath = path.join(homeDir, configFilepath.slice(2));
     }
     const parsedFiles = await Promise.all([
-        slurpFile.slurpFile(resolvedConfigFilepath, {
+        readFile.readFile(resolvedConfigFilepath, {
             ignoreCache: init.ignoreCache,
         })
             .then(parseIni)
             .then(getConfigData)
             .catch(swallowError$1),
-        slurpFile.slurpFile(resolvedFilepath, {
+        readFile.readFile(resolvedFilepath, {
             ignoreCache: init.ignoreCache,
         })
             .then(parseIni)
@@ -17266,7 +18914,7 @@ const getSsoSessionData = (data) => Object.entries(data)
     .reduce((acc, [key, value]) => ({ ...acc, [key.substring(key.indexOf(CONFIG_PREFIX_SEPARATOR) + 1)]: value }), {});
 
 const swallowError = () => ({});
-const loadSsoSessionData = async (init = {}) => slurpFile.slurpFile(init.configFilepath ?? getConfigFilepath())
+const loadSsoSessionData = async (init = {}) => readFile.readFile(init.configFilepath ?? getConfigFilepath())
     .then(parseIni)
     .then(getSsoSessionData)
     .catch(swallowError);
@@ -17293,10 +18941,10 @@ const parseKnownFiles = async (init) => {
 
 const externalDataInterceptor = {
     getFileRecord() {
-        return slurpFile.fileIntercept;
+        return readFile.fileIntercept;
     },
     interceptFile(path, contents) {
-        slurpFile.fileIntercept[path] = Promise.resolve(contents);
+        readFile.fileIntercept[path] = Promise.resolve(contents);
     },
     getTokenRecord() {
         return getSSOTokenFromFile.tokenIntercept;
@@ -17309,6 +18957,10 @@ const externalDataInterceptor = {
 Object.defineProperty(exports, "getSSOTokenFromFile", ({
     enumerable: true,
     get: function () { return getSSOTokenFromFile.getSSOTokenFromFile; }
+}));
+Object.defineProperty(exports, "readFile", ({
+    enumerable: true,
+    get: function () { return readFile.readFile; }
 }));
 exports.CONFIG_PREFIX_SEPARATOR = CONFIG_PREFIX_SEPARATOR;
 exports.DEFAULT_PROFILE = DEFAULT_PROFILE;
@@ -17334,27 +18986,26 @@ Object.keys(getSSOTokenFilepath).forEach(function (k) {
 
 /***/ }),
 
-/***/ 4246:
+/***/ 6684:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.slurpFile = exports.fileIntercept = exports.filePromisesHash = void 0;
-const fs_1 = __nccwpck_require__(9896);
-const { readFile } = fs_1.promises;
-exports.filePromisesHash = {};
+exports.readFile = exports.fileIntercept = exports.filePromises = void 0;
+const promises_1 = __nccwpck_require__(1455);
+exports.filePromises = {};
 exports.fileIntercept = {};
-const slurpFile = (path, options) => {
+const readFile = (path, options) => {
     if (exports.fileIntercept[path] !== undefined) {
         return exports.fileIntercept[path];
     }
-    if (!exports.filePromisesHash[path] || options?.ignoreCache) {
-        exports.filePromisesHash[path] = readFile(path, "utf8");
+    if (!exports.filePromises[path] || options?.ignoreCache) {
+        exports.filePromises[path] = (0, promises_1.readFile)(path, "utf8");
     }
-    return exports.filePromisesHash[path];
+    return exports.filePromises[path];
 };
-exports.slurpFile = slurpFile;
+exports.readFile = readFile;
 
 
 /***/ }),
@@ -18116,15 +19767,16 @@ class ClassBuilder {
                 this.schema = closure._operationSchema;
             }
             resolveMiddleware(stack, configuration, options) {
+                const op = closure._operationSchema;
+                const input = op?.[4] ?? op?.input;
+                const output = op?.[5] ?? op?.output;
                 return this.resolveMiddlewareWithContext(stack, configuration, options, {
                     CommandCtor: CommandRef,
                     middlewareFn: closure._middlewareFn,
                     clientName: closure._clientName,
                     commandName: closure._commandName,
-                    inputFilterSensitiveLog: closure._inputFilterSensitiveLog ??
-                        (closure._operationSchema ? schemaLogFilter.bind(null, closure._operationSchema.input) : (_) => _),
-                    outputFilterSensitiveLog: closure._outputFilterSensitiveLog ??
-                        (closure._operationSchema ? schemaLogFilter.bind(null, closure._operationSchema.output) : (_) => _),
+                    inputFilterSensitiveLog: closure._inputFilterSensitiveLog ?? (op ? schemaLogFilter.bind(null, input) : (_) => _),
+                    outputFilterSensitiveLog: closure._outputFilterSensitiveLog ?? (op ? schemaLogFilter.bind(null, output) : (_) => _),
                     smithyContext: closure._smithyContext,
                     additionalContext: closure._additionalContext,
                 });
@@ -19219,21 +20871,24 @@ const evaluateExpression = (obj, keyName, options) => {
         return evaluateTemplate(obj, options);
     }
     else if (obj["fn"]) {
-        return callFunction(obj, options);
+        return group$2.callFunction(obj, options);
     }
     else if (obj["ref"]) {
         return getReferenceValue(obj, options);
     }
     throw new EndpointError(`'${keyName}': ${String(obj)} is not a string, function or reference.`);
 };
-
 const callFunction = ({ fn, argv }, options) => {
-    const evaluatedArgs = argv.map((arg) => ["boolean", "number"].includes(typeof arg) ? arg : evaluateExpression(arg, "arg", options));
+    const evaluatedArgs = argv.map((arg) => ["boolean", "number"].includes(typeof arg) ? arg : group$2.evaluateExpression(arg, "arg", options));
     const fnSegments = fn.split(".");
     if (fnSegments[0] in customEndpointFunctions && fnSegments[1] != null) {
         return customEndpointFunctions[fnSegments[0]][fnSegments[1]](...evaluatedArgs);
     }
     return endpointFunctions[fn](...evaluatedArgs);
+};
+const group$2 = {
+    evaluateExpression,
+    callFunction,
 };
 
 const evaluateCondition = ({ assign, ...fnArgs }, options) => {
@@ -19280,6 +20935,10 @@ const getEndpointHeaders = (headers, options) => Object.entries(headers).reduce(
     }),
 }), {});
 
+const getEndpointProperties = (properties, options) => Object.entries(properties).reduce((acc, [propertyKey, propertyVal]) => ({
+    ...acc,
+    [propertyKey]: group$1.getEndpointProperty(propertyVal, options),
+}), {});
 const getEndpointProperty = (property, options) => {
     if (Array.isArray(property)) {
         return property.map((propertyEntry) => getEndpointProperty(propertyEntry, options));
@@ -19291,18 +20950,17 @@ const getEndpointProperty = (property, options) => {
             if (property === null) {
                 throw new EndpointError(`Unexpected endpoint property: ${property}`);
             }
-            return getEndpointProperties(property, options);
+            return group$1.getEndpointProperties(property, options);
         case "boolean":
             return property;
         default:
             throw new EndpointError(`Unexpected endpoint property type: ${typeof property}`);
     }
 };
-
-const getEndpointProperties = (properties, options) => Object.entries(properties).reduce((acc, [propertyKey, propertyVal]) => ({
-    ...acc,
-    [propertyKey]: getEndpointProperty(propertyVal, options),
-}), {});
+const group$1 = {
+    getEndpointProperty,
+    getEndpointProperties,
+};
 
 const getEndpointUrl = (endpointUrl, options) => {
     const expression = evaluateExpression(endpointUrl, "Endpoint URL", options);
@@ -19353,18 +21011,6 @@ const evaluateErrorRule = (errorRule, options) => {
     }));
 };
 
-const evaluateTreeRule = (treeRule, options) => {
-    const { conditions, rules } = treeRule;
-    const { result, referenceRecord } = evaluateConditions(conditions, options);
-    if (!result) {
-        return;
-    }
-    return evaluateRules(rules, {
-        ...options,
-        referenceRecord: { ...options.referenceRecord, ...referenceRecord },
-    });
-};
-
 const evaluateRules = (rules, options) => {
     for (const rule of rules) {
         if (rule.type === "endpoint") {
@@ -19377,7 +21023,7 @@ const evaluateRules = (rules, options) => {
             evaluateErrorRule(rule, options);
         }
         else if (rule.type === "tree") {
-            const endpointOrUndefined = evaluateTreeRule(rule, options);
+            const endpointOrUndefined = group.evaluateTreeRule(rule, options);
             if (endpointOrUndefined) {
                 return endpointOrUndefined;
             }
@@ -19387,6 +21033,21 @@ const evaluateRules = (rules, options) => {
         }
     }
     throw new EndpointError(`Rules evaluation failed`);
+};
+const evaluateTreeRule = (treeRule, options) => {
+    const { conditions, rules } = treeRule;
+    const { result, referenceRecord } = evaluateConditions(conditions, options);
+    if (!result) {
+        return;
+    }
+    return group.evaluateRules(rules, {
+        ...options,
+        referenceRecord: { ...options.referenceRecord, ...referenceRecord },
+    });
+};
+const group = {
+    evaluateRules,
+    evaluateTreeRule,
 };
 
 const resolveEndpoint = (ruleSetObject, options) => {
@@ -20292,23 +21953,13 @@ var sdkStreamMixin = __nccwpck_require__(7201);
 var splitStream = __nccwpck_require__(2108);
 var streamTypeCheck = __nccwpck_require__(4414);
 
-function transformToString(payload, encoding = "utf-8") {
-    if (encoding === "base64") {
-        return utilBase64.toBase64(payload);
-    }
-    return utilUtf8.toUtf8(payload);
-}
-function transformFromString(str, encoding) {
-    if (encoding === "base64") {
-        return Uint8ArrayBlobAdapter.mutate(utilBase64.fromBase64(str));
-    }
-    return Uint8ArrayBlobAdapter.mutate(utilUtf8.fromUtf8(str));
-}
-
 class Uint8ArrayBlobAdapter extends Uint8Array {
     static fromString(source, encoding = "utf-8") {
         if (typeof source === "string") {
-            return transformFromString(source, encoding);
+            if (encoding === "base64") {
+                return Uint8ArrayBlobAdapter.mutate(utilBase64.fromBase64(source));
+            }
+            return Uint8ArrayBlobAdapter.mutate(utilUtf8.fromUtf8(source));
         }
         throw new Error(`Unsupported conversion from ${typeof source} to Uint8ArrayBlobAdapter.`);
     }
@@ -20317,7 +21968,10 @@ class Uint8ArrayBlobAdapter extends Uint8Array {
         return source;
     }
     transformToString(encoding = "utf-8") {
-        return transformToString(this, encoding);
+        if (encoding === "base64") {
+            return utilBase64.toBase64(this);
+        }
+        return utilUtf8.toUtf8(this);
     }
 }
 
@@ -21529,6 +23183,14 @@ module.exports = require("node:fs");
 
 /***/ }),
 
+/***/ 1455:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:fs/promises");
+
+/***/ }),
+
 /***/ 7075:
 /***/ ((module) => {
 
@@ -21620,7 +23282,7 @@ module.exports = require("util");
 /***/ ((module) => {
 
 "use strict";
-module.exports = /*#__PURE__*/JSON.parse('{"name":"@aws-sdk/client-codepipeline","description":"AWS SDK for JavaScript Codepipeline Client for Node.js, Browser and React Native","version":"3.908.0","scripts":{"build":"concurrently \'yarn:build:cjs\' \'yarn:build:es\' \'yarn:build:types\'","build:cjs":"node ../../scripts/compilation/inline client-codepipeline","build:es":"tsc -p tsconfig.es.json","build:include:deps":"lerna run --scope $npm_package_name --include-dependencies build","build:types":"tsc -p tsconfig.types.json","build:types:downlevel":"downlevel-dts dist-types dist-types/ts3.4","clean":"rimraf ./dist-* && rimraf *.tsbuildinfo","extract:docs":"api-extractor run --local","generate:client":"node ../../scripts/generate-clients/single-service --solo codepipeline"},"main":"./dist-cjs/index.js","types":"./dist-types/index.d.ts","module":"./dist-es/index.js","sideEffects":false,"dependencies":{"@aws-crypto/sha256-browser":"5.2.0","@aws-crypto/sha256-js":"5.2.0","@aws-sdk/core":"3.908.0","@aws-sdk/credential-provider-node":"3.908.0","@aws-sdk/middleware-host-header":"3.901.0","@aws-sdk/middleware-logger":"3.901.0","@aws-sdk/middleware-recursion-detection":"3.901.0","@aws-sdk/middleware-user-agent":"3.908.0","@aws-sdk/region-config-resolver":"3.901.0","@aws-sdk/types":"3.901.0","@aws-sdk/util-endpoints":"3.901.0","@aws-sdk/util-user-agent-browser":"3.907.0","@aws-sdk/util-user-agent-node":"3.908.0","@smithy/config-resolver":"^4.3.0","@smithy/core":"^3.15.0","@smithy/fetch-http-handler":"^5.3.1","@smithy/hash-node":"^4.2.0","@smithy/invalid-dependency":"^4.2.0","@smithy/middleware-content-length":"^4.2.0","@smithy/middleware-endpoint":"^4.3.1","@smithy/middleware-retry":"^4.4.1","@smithy/middleware-serde":"^4.2.0","@smithy/middleware-stack":"^4.2.0","@smithy/node-config-provider":"^4.3.0","@smithy/node-http-handler":"^4.3.0","@smithy/protocol-http":"^5.3.0","@smithy/smithy-client":"^4.7.1","@smithy/types":"^4.6.0","@smithy/url-parser":"^4.2.0","@smithy/util-base64":"^4.3.0","@smithy/util-body-length-browser":"^4.2.0","@smithy/util-body-length-node":"^4.2.1","@smithy/util-defaults-mode-browser":"^4.3.0","@smithy/util-defaults-mode-node":"^4.2.1","@smithy/util-endpoints":"^3.2.0","@smithy/util-middleware":"^4.2.0","@smithy/util-retry":"^4.2.0","@smithy/util-utf8":"^4.2.0","@smithy/uuid":"^1.1.0","tslib":"^2.6.2"},"devDependencies":{"@tsconfig/node18":"18.2.4","@types/node":"^18.19.69","concurrently":"7.0.0","downlevel-dts":"0.10.1","rimraf":"3.0.2","typescript":"~5.8.3"},"engines":{"node":">=18.0.0"},"typesVersions":{"<4.0":{"dist-types/*":["dist-types/ts3.4/*"]}},"files":["dist-*/**"],"author":{"name":"AWS SDK for JavaScript Team","url":"https://aws.amazon.com/javascript/"},"license":"Apache-2.0","browser":{"./dist-es/runtimeConfig":"./dist-es/runtimeConfig.browser"},"react-native":{"./dist-es/runtimeConfig":"./dist-es/runtimeConfig.native"},"homepage":"https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-codepipeline","repository":{"type":"git","url":"https://github.com/aws/aws-sdk-js-v3.git","directory":"clients/client-codepipeline"}}');
+module.exports = /*#__PURE__*/JSON.parse('{"name":"@aws-sdk/client-codepipeline","description":"AWS SDK for JavaScript Codepipeline Client for Node.js, Browser and React Native","version":"3.932.0","scripts":{"build":"concurrently \'yarn:build:cjs\' \'yarn:build:es\' \'yarn:build:types\'","build:cjs":"node ../../scripts/compilation/inline client-codepipeline","build:es":"tsc -p tsconfig.es.json","build:include:deps":"lerna run --scope $npm_package_name --include-dependencies build","build:types":"tsc -p tsconfig.types.json","build:types:downlevel":"downlevel-dts dist-types dist-types/ts3.4","clean":"rimraf ./dist-* && rimraf *.tsbuildinfo","extract:docs":"api-extractor run --local","generate:client":"node ../../scripts/generate-clients/single-service --solo codepipeline"},"main":"./dist-cjs/index.js","types":"./dist-types/index.d.ts","module":"./dist-es/index.js","sideEffects":false,"dependencies":{"@aws-crypto/sha256-browser":"5.2.0","@aws-crypto/sha256-js":"5.2.0","@aws-sdk/core":"3.932.0","@aws-sdk/credential-provider-node":"3.932.0","@aws-sdk/middleware-host-header":"3.930.0","@aws-sdk/middleware-logger":"3.930.0","@aws-sdk/middleware-recursion-detection":"3.930.0","@aws-sdk/middleware-user-agent":"3.932.0","@aws-sdk/region-config-resolver":"3.930.0","@aws-sdk/types":"3.930.0","@aws-sdk/util-endpoints":"3.930.0","@aws-sdk/util-user-agent-browser":"3.930.0","@aws-sdk/util-user-agent-node":"3.932.0","@smithy/config-resolver":"^4.4.3","@smithy/core":"^3.18.2","@smithy/fetch-http-handler":"^5.3.6","@smithy/hash-node":"^4.2.5","@smithy/invalid-dependency":"^4.2.5","@smithy/middleware-content-length":"^4.2.5","@smithy/middleware-endpoint":"^4.3.9","@smithy/middleware-retry":"^4.4.9","@smithy/middleware-serde":"^4.2.5","@smithy/middleware-stack":"^4.2.5","@smithy/node-config-provider":"^4.3.5","@smithy/node-http-handler":"^4.4.5","@smithy/protocol-http":"^5.3.5","@smithy/smithy-client":"^4.9.5","@smithy/types":"^4.9.0","@smithy/url-parser":"^4.2.5","@smithy/util-base64":"^4.3.0","@smithy/util-body-length-browser":"^4.2.0","@smithy/util-body-length-node":"^4.2.1","@smithy/util-defaults-mode-browser":"^4.3.8","@smithy/util-defaults-mode-node":"^4.2.11","@smithy/util-endpoints":"^3.2.5","@smithy/util-middleware":"^4.2.5","@smithy/util-retry":"^4.2.5","@smithy/util-utf8":"^4.2.0","tslib":"^2.6.2"},"devDependencies":{"@tsconfig/node18":"18.2.4","@types/node":"^18.19.69","concurrently":"7.0.0","downlevel-dts":"0.10.1","rimraf":"3.0.2","typescript":"~5.8.3"},"engines":{"node":">=18.0.0"},"typesVersions":{"<4.0":{"dist-types/*":["dist-types/ts3.4/*"]}},"files":["dist-*/**"],"author":{"name":"AWS SDK for JavaScript Team","url":"https://aws.amazon.com/javascript/"},"license":"Apache-2.0","browser":{"./dist-es/runtimeConfig":"./dist-es/runtimeConfig.browser"},"react-native":{"./dist-es/runtimeConfig":"./dist-es/runtimeConfig.native"},"homepage":"https://github.com/aws/aws-sdk-js-v3/tree/main/clients/client-codepipeline","repository":{"type":"git","url":"https://github.com/aws/aws-sdk-js-v3.git","directory":"clients/client-codepipeline"}}');
 
 /***/ })
 
