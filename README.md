@@ -13,12 +13,12 @@ That is what I have tried to address with my changes to his code with everything
 
 Install the dependencies  
 ```bash
-$ npm install
+npm install
 ```
 
 Build the typescript and package it for distribution
 ```bash
-$ npm run build && npm run package
+npm run build && npm run package
 ```
 
 <!-- Run the tests :heavy_check_mark:  
@@ -40,7 +40,7 @@ Update the `package.json` with the new version number.
 
 Run:
 ```bash
-$ npm install
+npm install
 ```
 
 Commit the changes with the message `Release <major>.<minor>.<patch>`
