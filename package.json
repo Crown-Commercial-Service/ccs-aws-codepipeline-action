@@ -1,6 +1,6 @@
 {
   "name": "aws-codepipeline-action",
-  "version": "1.1.13",
+  "version": "2.0.0",
   "private": true,
   "description": "This GitHub Actions will help you trigger a pipeline in your AWS CodePipeline - assumming you already have the pipeline. This will not create the pipeline for you.",
   "main": "lib/main.js",
