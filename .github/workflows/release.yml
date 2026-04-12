@@ -29,7 +29,7 @@ jobs:
           tag: v${{ steps.package_version.outputs.npm }}
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.package_version.outputs.npm }}
           generate_release_notes: true
