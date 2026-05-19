@@ -1,22 +1,30 @@
 name: 'AWS CodePipeline Trigger'
-description: 'Trigger a pipeline in AWS CodePipeline from GitHub Actions and fail if there is an error'
+description:
+  'Trigger a pipeline in AWS CodePipeline from GitHub Actions and fail if there
+  is an error'
 author: '@tim-s-ccs'
+
+branding:
+  icon: 'cloud'
+  color: 'orange'
+
 inputs:
   aws-region:
-    description: "AWS Region where the CodePipeline is located"
+    description: 'AWS Region where the CodePipeline is located'
     required: true
   aws-access-key:
-    description: "AWS Access Key ID to trigger CodePipeline"
+    description: 'AWS Access Key ID to trigger CodePipeline'
     required: true
   aws-secret-key:
-    description: "AWS Secret Key to trigger CodePipeline"
+    description: 'AWS Secret Key to trigger CodePipeline'
     required: true
   pipeline-name:
-    description: "The name of the pipeline"
+    description: 'The name of the pipeline'
     required: true
+  target-branch:
+    description: 'The branch or git reference to deploy'
+    required: false
+
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
-branding:
-  icon: "cloud"
-  color: "orange"
+  using: node24
+  main: dist/index.js

@@ -3,11 +3,36 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: "weekly"
-      day: "sunday"
+      interval: 'weekly'
+      day: 'sunday'
 
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: "weekly"
-      day: "sunday"
+      interval: 'weekly'
+      day: 'sunday'
+
+    groups:
+      eslint:
+        patterns:
+          - '@eslint'
+          - '@eslint*'
+          - 'eslint'
+          - 'eslint*'
+          - '@typescript-eslint*'
+
+      rollup:
+        patterns:
+          - '@rollup'
+          - '@rollup*'
+          - 'rollup'
+          - 'rollup*'
+
+      jest:
+        patterns:
+          - '@jest'
+          - '@jest*'
+          - 'jest'
+          - 'jest*'
+          - 'ts-jest'
+          - 'ts-jest*'

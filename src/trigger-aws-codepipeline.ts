@@ -1,14 +1,16 @@
 import * as core from '@actions/core'
 import {
   CodePipelineClient,
-  StartPipelineExecutionCommand
+  StartPipelineExecutionCommand,
+  StartPipelineExecutionInput
 } from '@aws-sdk/client-codepipeline'
 
 const triggerAWSCodePipeline = async (
   awsRegion: string,
   awsAccessKey: string,
   awsSecretKey: string,
-  pipelineName: string
+  pipelineName: string,
+  branchName?: string
 ): Promise<void> => {
   const client = new CodePipelineClient({
     region: awsRegion,
@@ -18,9 +20,18 @@ const triggerAWSCodePipeline = async (
     }
   })
 
-  const command = new StartPipelineExecutionCommand({
-    name: pipelineName
-  })
+  const input: StartPipelineExecutionInput = { name: pipelineName }
+
+  if (branchName) {
+    input.variables = [
+      {
+        name: 'TargetBranch',
+        value: branchName
+      }
+    ]
+  }
+
+  const command = new StartPipelineExecutionCommand(input)
 
   try {
     const response = await client.send(command)
@@ -34,4 +45,4 @@ const triggerAWSCodePipeline = async (
   }
 }
 
-export {triggerAWSCodePipeline}
+export { triggerAWSCodePipeline }
